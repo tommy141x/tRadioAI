@@ -1,0 +1,128 @@
+{
+  "_comment": "Pinned upstream inputs. Nothing is mirrored: TIMMYG Studios infrastructure serves the marketplace and update checks, and third-party bytes come from their real upstream. Read by scripts/vendor-local-engine.ts (release preparation), by server/lib/ai/model-integrity.ts and weights.ts (the runtime weight fetch), by server/lib/ai/engine-install.ts (the runtime engine fetch) and by scripts/pins-check.ts (the scheduled liveness gate). Every entry is verified against its sha256 before it is used; a mismatch aborts rather than installs.",
+  "archives": [
+    {
+      "id": "llama-win",
+      "engine": "llama",
+      "platform": "win",
+      "capability": "text",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11045/llama-b11045-bin-win-cpu-x64.zip",
+      "sha256": "5cdd6cd5168a1c0c84b405f7fd42cce290c37b80a4867605c758f958a64bd166",
+      "bytes": 18453864,
+      "dest": "server/.cache/llama-win.zip",
+      "strip": 0,
+      "expect": "llama-server.exe"
+    },
+    {
+      "id": "llama-linux",
+      "engine": "llama",
+      "platform": "linux",
+      "capability": "text",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11045/llama-b11045-bin-ubuntu-x64.tar.gz",
+      "sha256": "4226ee2f241b38a08f63c93929b1064e425af8209628abfa644d0bb7ed768ce5",
+      "bytes": 16865765,
+      "dest": "server/.cache/llama-linux.tar.gz",
+      "strip": 1,
+      "expect": "llama-server"
+    },
+    {
+      "id": "whisper-win",
+      "engine": "whisper",
+      "platform": "win",
+      "capability": "transcription",
+      "url": "https://github.com/ggml-org/whisper.cpp/releases/download/b5130/whisper-bin-x64.zip",
+      "sha256": "f9ec6c52a2e949b62ab51fa21d0d497958f9e41c3010c157c4e42932d5316f3c",
+      "bytes": 8573270,
+      "dest": "server/.cache/whisper-win.zip",
+      "strip": 1,
+      "expect": "whisper-server.exe"
+    },
+    {
+      "id": "whisper-linux",
+      "engine": "whisper",
+      "platform": "linux",
+      "capability": "transcription",
+      "url": "https://github.com/ggml-org/whisper.cpp/releases/download/b5130/whisper-bin-ubuntu-x64.tar.gz",
+      "sha256": "53e7fd8b5764edad916b8848dd0af6abb1ff1d3b86c899e79c78652412536c32",
+      "bytes": 9793438,
+      "dest": "server/.cache/whisper-linux.tar.gz",
+      "strip": 1,
+      "expect": "whisper-server"
+    },
+    {
+      "id": "piper-win",
+      "engine": "piper",
+      "platform": "win",
+      "capability": "speech",
+      "url": "https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_windows_amd64.zip",
+      "sha256": "f3c58906402b24f3a96d92145f58acba6d86c9b5db896d207f78dc80811efcea",
+      "bytes": 22477236,
+      "dest": "server/.cache/piper-win.zip",
+      "strip": 1,
+      "expect": "piper.exe"
+    },
+    {
+      "id": "piper-linux",
+      "engine": "piper",
+      "platform": "linux",
+      "capability": "speech",
+      "url": "https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_x86_64.tar.gz",
+      "sha256": "a50cb45f355b7af1f6d758c1b360717877ba0a398cc8cbe6d2a7a3a26e225992",
+      "bytes": 26460462,
+      "dest": "server/.cache/piper-linux.tar.gz",
+      "strip": 1,
+      "expect": "piper"
+    }
+  ],
+  "weights": [
+    {
+      "id": "text",
+      "capability": "text",
+      "bytes": 2497281120,
+      "dest": "server/models/qwen3-4b-instruct-2507-q4_k_m.gguf",
+      "url": "https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/main/Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+      "sha256": "3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597",
+      "_comment": "Byte-identical to the file tAI runs for dialogue, which is what makes the two resources' `text` workload one thing rather than two: they share an engine instead of loading a model each. That invariant is the reason this entry moved. It used to pin qwen3-1.7b for the same reason, and it had quietly stopped being true — tAI moved its dialogue to the 4B, so a box running both was holding 1.2 GB and 2.5 GB side by side. Matching it again costs a larger download for tRadio alone and saves 1.2 GB for anyone running the pair. The 1.7B was also measured, on 2026-09-19, getting 6 of 12 dispatch tool choices right against this model's 12 of 12; see local-engine.ts."
+    },
+    {
+      "id": "transcription",
+      "capability": "transcription",
+      "bytes": 59721011,
+      "dest": "server/models/ggml-base.en-q5_1.bin",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en-q5_1.bin",
+      "sha256": "4baf70dd0d7c4247ba2b81fafd9c01005ac77c2f9ef064e00dcf195d0e2fdd2f"
+    },
+    {
+      "id": "voice-female",
+      "capability": "speech",
+      "bytes": 63201294,
+      "dest": "server/models/voices/en_US-amy-medium.onnx",
+      "url": "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx",
+      "sha256": "b3a6e47b57b8c7fbe6a0ce2518161a50f59a9cdd8a50835c02cb02bdd6206c18"
+    },
+    {
+      "id": "voice-female-config",
+      "capability": "speech",
+      "bytes": 4882,
+      "dest": "server/models/voices/en_US-amy-medium.onnx.json",
+      "url": "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx.json",
+      "sha256": "95a23eb4d42909d38df73bb9ac7f45f597dbfcde2d1bf9526fdeaf5466977d77"
+    },
+    {
+      "id": "voice-male",
+      "capability": "speech",
+      "bytes": 63201294,
+      "dest": "server/models/voices/en_US-ryan-medium.onnx",
+      "url": "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/ryan/medium/en_US-ryan-medium.onnx",
+      "sha256": "abf4c274862564ed647ba0d2c47f8ee7c9b717d27bdad9219100eb310db4047a"
+    },
+    {
+      "id": "voice-male-config",
+      "capability": "speech",
+      "bytes": 4883,
+      "dest": "server/models/voices/en_US-ryan-medium.onnx.json",
+      "url": "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/ryan/medium/en_US-ryan-medium.onnx.json",
+      "sha256": "44034c056cb15681b2ad494307c7f3f2e4499d1253c700c711fa0a4607ffe78d"
+    }
+  ]
+}

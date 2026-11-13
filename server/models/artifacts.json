@@ -1,0 +1,5 @@
+{
+  "_comment": "Names the weights this install actually has. Another t* resource with the same names shares the engine instead of loading a second copy. Change these if you swap the models out.",
+  "text": "qwen3-4b-instruct-2507-q4_k_m",
+  "transcription": "whisper-base.en-q5_1"
+}
