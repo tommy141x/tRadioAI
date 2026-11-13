@@ -1581,7 +1581,7 @@ function sleep(ms: number): Promise<void> {
  * into it is gone — so the greeting has to wait for the caller rather than for the
  * answer. See {@link CALL_JOIN_WAIT_MS}.
  */
-async function waitForCaller(call: Call911): Promise<boolean> {
+async function waitForCaller(call: Call911, entry: AnsweredCall): Promise<boolean> {
   const until = Date.now() + CALL_JOIN_WAIT_MS;
   for (;;) {
     // Matched on the caller's own server id: nobody else on the call's frequency
@@ -1592,6 +1592,10 @@ async function waitForCaller(call: Call911): Promise<boolean> {
         (user) => user.serverId === call.callerServerId && user.speakerChannel === call.frequency,
       );
     if (joined) return true;
+    // The call ended (or this resource stopped) while waiting: nobody is coming, and a
+    // greeting aired afterwards would go out on a frequency that no longer exists. Matched
+    // on the registry entry itself, not the frequency: a frequency can be answered again.
+    if (answeredOn(call.frequency) !== entry) return false;
     if (Date.now() >= until) return false;
     await sleep(CALL_JOIN_POLL_MS);
   }
@@ -1654,7 +1658,7 @@ async function answerCall(call: Call911): Promise<void> {
   // Registered before the answer, not after: tRadio starts reporting the caller's
   // transmissions the moment it accepts, and the registry is how a transmission on a
   // frequency that exists nowhere in the config is recognised as a call.
-  noteAnswered(call, info);
+  const entry = noteAnswered(call, info);
   const refused = await pickUp(station, call);
   if (!refused.ok) {
     // The caller dropped, or a human got there first. Unwound so nothing is left
@@ -1677,7 +1681,7 @@ async function answerCall(call: Call911): Promise<void> {
 
   busy.add(call.frequency);
   try {
-    if (!(await waitForCaller(call))) {
+    if (!(await waitForCaller(call, entry))) {
       // Said rather than left blank, because "the caller never joined" and "the
       // greeting would not synthesise" are the same silence from the outside and
       // want different fixes. The call itself is left alone: `calls911`'s answer
