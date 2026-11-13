@@ -1,0 +1,16 @@
+node_modules/
+server/dist/
+dist-release/
+
+# Downloaded at first start, never committed. Weights are gigabytes; engines are
+# upstream binaries this repo does not redistribute.
+server/.cache/
+server/bin/
+server/models/*.gguf
+server/models/*.bin
+server/models/voices/*.onnx
+server/models/validation.json
+server/logs/
+
+# Runtime state
+*.log

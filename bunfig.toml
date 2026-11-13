@@ -1,0 +1,5 @@
+[test]
+# Stubs the FiveM natives and the `on`/`emit` event bus before any module loads;
+# the bundle reads them at import time.
+preload = ["./scripts/test-setup.ts"]
+pathIgnorePatterns = ["**/dist/**"]
