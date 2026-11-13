@@ -36,6 +36,17 @@ interface ProviderProfile {
   /** Base URL for the OpenAI-shaped routes. Absent for the local engine. */
   baseUrl?: string;
   needsKey: boolean;
+  /**
+   * Whether a request without a model id is refused.
+   *
+   * Every hosted OpenAI-shaped endpoint refuses one: OpenAI with
+   * `400 you must provide a model parameter`, which an operator who wrote
+   * `providers = { text = { provider = 'openai' } }` hit on every turn. Resolved at
+   * configuration time instead, so the mistake is named once at start with the fix,
+   * and not discovered as a failed turn in the middle of a shift. ElevenLabs is the
+   * exception: it picks a default when `model_id` is absent.
+   */
+  needsModel: boolean;
 }
 
 /**
@@ -49,10 +60,25 @@ interface ProviderProfile {
  * a provider is listed when tRadio has a dialect for it.
  */
 const PROFILES: Record<ProviderId, ProviderProfile> = {
-  local: { serves: CAPABILITIES, needsKey: false },
-  openai: { serves: CAPABILITIES, baseUrl: "https://api.openai.com/v1", needsKey: true },
-  openrouter: { serves: ["text"], baseUrl: "https://openrouter.ai/api/v1", needsKey: true },
-  groq: { serves: CAPABILITIES, baseUrl: "https://api.groq.com/openai/v1", needsKey: true },
+  local: { serves: CAPABILITIES, needsKey: false, needsModel: false },
+  openai: {
+    serves: CAPABILITIES,
+    baseUrl: "https://api.openai.com/v1",
+    needsKey: true,
+    needsModel: true,
+  },
+  openrouter: {
+    serves: ["text"],
+    baseUrl: "https://openrouter.ai/api/v1",
+    needsKey: true,
+    needsModel: true,
+  },
+  groq: {
+    serves: CAPABILITIES,
+    baseUrl: "https://api.groq.com/openai/v1",
+    needsKey: true,
+    needsModel: true,
+  },
   // TEXT ONLY, and this is a correction rather than a restriction: it never served
   // the other two. Vercel's AI Gateway is OpenAI-shaped at `/v1` for chat
   // completions and nothing else — its audio lives on a different API version with
@@ -80,11 +106,21 @@ const PROFILES: Record<ProviderId, ProviderProfile> = {
   // for a capability when tRadio has a dialect for it. Asking vercel for speech now
   // falls back to the local engine with a named reason, like any other mismatch,
   // instead of failing per turn against a route that is not there.
-  vercel: { serves: ["text"], baseUrl: "https://ai-gateway.vercel.sh/v1", needsKey: true },
+  vercel: {
+    serves: ["text"],
+    baseUrl: "https://ai-gateway.vercel.sh/v1",
+    needsKey: true,
+    needsModel: true,
+  },
   // Speech ONLY, and that is the product rather than a limitation: ElevenLabs has
   // no chat-completions or transcription route tRadio could use. Asking it for
   // `text` falls back to local with a named reason, like any other mismatch.
-  elevenlabs: { serves: ["speech"], baseUrl: "https://api.elevenlabs.io/v1", needsKey: true },
+  elevenlabs: {
+    serves: ["speech"],
+    baseUrl: "https://api.elevenlabs.io/v1",
+    needsKey: true,
+    needsModel: false,
+  },
 };
 
 /**
@@ -210,6 +246,13 @@ export function resolveCapability(
   if (profile.needsKey && config?.hasKey !== true) {
     return local(
       `${wanted} needs an API key and none is set in ${keyConvar(wanted)}; using the local engine`
+    );
+  }
+
+  if (profile.needsModel && !config?.model) {
+    return local(
+      `${wanted} needs a model for ${capability}; set providers.${capability}.model in config.lua ` +
+        `(\`tradioai_models ${wanted}\` lists them); using the local engine`
     );
   }
 

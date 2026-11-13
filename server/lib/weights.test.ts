@@ -28,7 +28,7 @@ describe("localCapabilities", () => {
   });
 
   test("a hosted capability with a key drops out", () => {
-    const plan = resolveProviders({ text: { provider: "groq", key: "sk-test" } });
+    const plan = resolveProviders({ text: { provider: "groq", model: "llama-3.3-70b", key: "sk-test" } });
     expect(localCapabilities(plan)).not.toContain("text");
     expect(localCapabilities(plan).sort()).toEqual(["speech", "transcription"]);
   });
@@ -50,9 +50,9 @@ describe("localCapabilities", () => {
 
   test("everything hosted leaves nothing to fetch", () => {
     const plan = resolveProviders({
-      text: { provider: "groq", key: "k" },
-      speech: { provider: "openai", key: "k" },
-      transcription: { provider: "openai", key: "k" },
+      text: { provider: "groq", model: "llama-3.3-70b", key: "k" },
+      speech: { provider: "openai", model: "tts-1", key: "k" },
+      transcription: { provider: "openai", model: "whisper-1", key: "k" },
     });
     expect(localCapabilities(plan)).toEqual([]);
   });
@@ -93,7 +93,7 @@ describe("the real lockfile", () => {
   });
 
   test("sending text to a hosted provider avoids 2.3 GB of the 2.5", () => {
-    const plan = resolveProviders({ text: { provider: "groq", key: "sk-test" } });
+    const plan = resolveProviders({ text: { provider: "groq", model: "llama-3.3-70b", key: "sk-test" } });
     const needed = selectAssets(pins, localCapabilities(plan));
     expect(needed.map((p) => p.id)).not.toContain("text");
     // 2.5 GB down to under 200 MB: the point of the whole feature.
@@ -102,9 +102,9 @@ describe("the real lockfile", () => {
 
   test("all-hosted selects nothing at all", () => {
     const plan = resolveProviders({
-      text: { provider: "groq", key: "k" },
-      speech: { provider: "openai", key: "k" },
-      transcription: { provider: "openai", key: "k" },
+      text: { provider: "groq", model: "llama-3.3-70b", key: "k" },
+      speech: { provider: "openai", model: "tts-1", key: "k" },
+      transcription: { provider: "openai", model: "whisper-1", key: "k" },
     });
     expect(selectAssets(pins, localCapabilities(plan))).toEqual([]);
   });

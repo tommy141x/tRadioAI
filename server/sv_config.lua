@@ -34,6 +34,20 @@ local function checkKeys()
     end
 end
 
+-- A key typed into config.lua is ignored by design (see the header), and silently ignoring
+-- it would leave the operator wondering why a hosted provider fell back to the local
+-- engine. Named without echoing the value.
+local function checkKeysNotInConfig()
+    if type(Config.providers) ~= 'table' then return end
+    for capability, entry in pairs(Config.providers) do
+        if type(entry) == 'table' and entry.key ~= nil then
+            warn(('providers.%s.key in config.lua is ignored: put the key in server.cfg as '
+                .. 'set tradioai_%s_key "..." and remove it from this file'):format(
+                tostring(capability), tostring(entry.provider or '<provider>')))
+        end
+    end
+end
+
 local function section(value)
     return type(value) == 'table' and value or {}
 end
@@ -69,5 +83,6 @@ end
 
 AddEventHandler('tradioai:nodeReady', function()
     checkKeys()
+    checkKeysNotInConfig()
     TriggerEvent('tradioai:config', payload())
 end)

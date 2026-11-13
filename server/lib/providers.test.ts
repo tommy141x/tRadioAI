@@ -59,10 +59,36 @@ describe("resolveCapability", () => {
   it("lets an explicit baseUrl override the provider's own", () => {
     const resolved = resolveCapability("text", {
       provider: "openai",
+      model: "gpt-4o-mini",
       hasKey: true,
       baseUrl: "http://127.0.0.1:8080/v1",
     });
     expect(resolved.baseUrl).toBe("http://127.0.0.1:8080/v1");
+  });
+
+  /**
+   * OpenAI answers a request with no model with `400 you must provide a model
+   * parameter`, and that is what an operator who wrote only `provider = 'openai'` got on
+   * every turn. It is refused here instead, at configuration time, naming the fix.
+   */
+  it("falls back to local when a hosted provider is given no model, naming the setting", () => {
+    for (const provider of ["openai", "groq", "openrouter", "vercel"] as const) {
+      const resolved = resolveCapability("text", { provider, hasKey: true });
+      expect(resolved.provider).toBe("local");
+      expect(resolved.note).toContain("needs a model for text");
+      expect(resolved.note).toContain("providers.text.model");
+    }
+  });
+
+  it("does not ask ElevenLabs for a model: it picks its own", () => {
+    const resolved = resolveCapability("speech", { provider: "elevenlabs", hasKey: true });
+    expect(resolved.provider).toBe("elevenlabs");
+    expect(resolved.hosted).toBe(true);
+  });
+
+  it("a missing key is reported before a missing model", () => {
+    // Fix the first problem the operator has; the second follows once it is fixed.
+    expect(resolveCapability("text", { provider: "openai" }).note).toContain("API key");
   });
 });
 

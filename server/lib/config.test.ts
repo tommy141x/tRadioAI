@@ -172,7 +172,11 @@ describe("applyAiConfig", () => {
   });
 
   test("takes a hosted provider for one capability and leaves the rest local", () => {
-    applyAiConfig({ providers: { text: { provider: "groq", key: "sk-test" } } });
+    const real = (globalThis as { GetConvar?: unknown }).GetConvar;
+    (globalThis as { GetConvar?: unknown }).GetConvar = (name: string) =>
+      name === "tradioai_groq_key" ? "placeholder-key" : "";
+    applyAiConfig({ providers: { text: { provider: "groq", model: "llama-3.3-70b-versatile" } } });
+    (globalThis as { GetConvar?: unknown }).GetConvar = real;
     const plan = providerPlan();
     expect(plan.text.hosted).toBe(true);
     expect(plan.text.provider).toBe("groq");
