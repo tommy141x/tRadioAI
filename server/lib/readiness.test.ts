@@ -5,7 +5,7 @@ const own = (id: number) => id === -900000;
 const user = (
   serverId: number,
   speakerChannel: number | null,
-  listeningChannels: number[] = []
+  listeningChannels: number[] = [],
 ) => ({ serverId, speakerChannel, listeningChannels: new Set(listeningChannels) });
 
 describe("dispatcher readiness", () => {
@@ -51,10 +51,13 @@ describe("dispatcher readiness", () => {
   test("a failed warm is not retried on every sweep, and an operator's save clears it", async () => {
     let starts = 0;
     let clock = 1_000_000;
-    const ready = createReadiness(() => {
-      starts++;
-      return Promise.reject(new Error("no broker"));
-    }, () => clock);
+    const ready = createReadiness(
+      () => {
+        starts++;
+        return Promise.reject(new Error("no broker"));
+      },
+      () => clock,
+    );
 
     ready.update(true);
     expect(starts).toBe(1);

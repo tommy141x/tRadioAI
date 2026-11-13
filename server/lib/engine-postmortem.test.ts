@@ -76,7 +76,7 @@ describe("reading why an engine died", () => {
         { stream: "stdout", text: "loading model" },
         { stream: "stderr", text: "error: failed to open ggml-base.en.bin" },
       ],
-      1
+      1,
     );
     const why = start().postmortem();
     expect(why.stderr).toEqual(["error: failed to open ggml-base.en.bin"]);
@@ -92,7 +92,7 @@ describe("reading why an engine died", () => {
         { stream: "stderr", text: "the real reason" },
         { stream: "stdout", text: "noise two" },
       ],
-      3221225781
+      3221225781,
     );
     expect(start().postmortem().stderr).toEqual(["the real reason"]);
   });
@@ -123,7 +123,7 @@ describe("reading why an engine died", () => {
     const source = readFileSync(new URL("./local-engine.ts", import.meta.url), "utf8");
     const block = source.slice(
       source.indexOf("  if (!ready) {"),
-      source.indexOf("  engines.set(capability,")
+      source.indexOf("  engines.set(capability,"),
     );
     expect(block).toContain("started.postmortem()");
     expect(block).toContain("started.kill()");

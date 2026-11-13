@@ -52,7 +52,6 @@ import type { Capability } from "./providers";
 import { advertiseEngine, sharedEngine } from "./shared-engine";
 import { launchServer, type Postmortem, type Program, type Running, runOnce } from "./spawn";
 
-
 /**
  * Loopback only, and deliberately not configurable.
  *
@@ -318,7 +317,7 @@ export function launchFor(capability: ServedCapability): Launch {
          */
         model: resolveModel(
           paths?.textModel ?? "",
-          "server/models/qwen3-4b-instruct-2507-q4_k_m.gguf"
+          "server/models/qwen3-4b-instruct-2507-q4_k_m.gguf",
         ),
         args: (model, port) => [
           "--model",
@@ -397,7 +396,7 @@ export function launchFor(capability: ServedCapability): Launch {
  */
 export function localEndpoint(
   capability: Capability,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<LocalEndpoint | null> {
   // Local speech is a process per utterance, not a server; `localSpeech` owns it.
   if (capability === "speech") return Promise.resolve(null);
@@ -424,7 +423,7 @@ export function localEndpoint(
 /** Stop waiting on a start when the turn gives up, and leave the start running. */
 function untilAborted(
   pending: Promise<LocalEndpoint | null>,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<LocalEndpoint | null> {
   if (!signal) return pending;
   if (signal.aborted) return Promise.resolve(null);
@@ -439,7 +438,7 @@ function untilAborted(
       () => {
         signal.removeEventListener("abort", giveUp);
         resolve(null);
-      }
+      },
     );
   });
 }
@@ -521,7 +520,7 @@ async function startEngine(capability: ServedCapability): Promise<LocalEndpoint 
         ? `local ${capability} engine stopped while loading${exitNote(why)}` +
             `${engineSaid(why)}${integrity.note}${memoryNote(launch.model)}`
         : `local ${capability} engine did not answer within ${READY_TIMEOUT_MS / 1000}s` +
-            engineSaid(why)
+            engineSaid(why),
     );
   }
 
@@ -656,7 +655,7 @@ async function answers(url: string): Promise<boolean> {
 async function reclaimPort(
   capability: ServedCapability,
   port: number,
-  probe: string
+  probe: string,
 ): Promise<string> {
   if (!(await answers(probe))) return "";
 
@@ -815,7 +814,7 @@ function speechScratch(): string {
 export async function localSpeech(
   text: string,
   voice: string,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<{ pcm: Int16Array; sampleRate: number }> {
   const reason = localSpeechFailure(voice);
   if (reason) throw new Error(reason);

@@ -37,7 +37,7 @@ describe("destination safety", () => {
 
   test("accepts an ordinary nested destination", () => {
     expect(assertSafeDest("server/models/voices/en_US-amy-medium.onnx")).toBe(
-      "server/models/voices/en_US-amy-medium.onnx"
+      "server/models/voices/en_US-amy-medium.onnx",
     );
   });
 
@@ -77,7 +77,7 @@ describe("capability selection", () => {
   const assets = [
     parseAsset(asset({ id: "text", capability: "text", bytes: 2_496_000_000 })),
     parseAsset(
-      asset({ id: "stt", dest: "m/w.bin", capability: "transcription", bytes: 59_000_000 })
+      asset({ id: "stt", dest: "m/w.bin", capability: "transcription", bytes: 59_000_000 }),
     ),
     parseAsset(asset({ id: "amy", dest: "m/a.onnx", capability: "speech", bytes: 63_000_000 })),
     parseAsset(asset({ id: "ryan", dest: "m/r.onnx", capability: "speech", bytes: 63_000_000 })),

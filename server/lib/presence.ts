@@ -23,7 +23,9 @@ export interface HumanDispatcher {
 }
 
 export function humanDispatcherOn(frequency: number, humans: readonly HumanDispatcher[]): boolean {
-  return humans.some((human) => human.selected === frequency || human.listening.includes(frequency));
+  return humans.some(
+    (human) => human.selected === frequency || human.listening.includes(frequency),
+  );
 }
 
 /**

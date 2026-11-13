@@ -101,7 +101,7 @@ describe("status grounding", () => {
           ...context,
           transcript: "Dispatch, show me at lunch.",
         })
-      ).ok
+      ).ok,
     ).toBe(true);
     expect(runCalls).toHaveLength(1);
   });
@@ -223,7 +223,7 @@ describe("an argument copied out of a tool's own description", () => {
 
   test("is allowed when the unit actually said it", () => {
     expect(isLiftedExample(tool, "out at lunch", "Dispatch, K31, show me out at lunch")).toBe(
-      false
+      false,
     );
   });
 
@@ -245,7 +245,7 @@ describe("grounding a status in what the unit actually said", () => {
   test("forgives leading filler the model adds", () => {
     expect(groundedIn("Dispatch, King 41. Show Me 10-8.", "showing 10-8")).toBe(true);
     expect(groundedIn("priority traffic, shots fired on Route 68", "showing shots fired")).toBe(
-      true
+      true,
     );
     // "unit" strips to "running on foot", which the unit did say, so this is a
     // genuine status and passing is correct. I asserted false here first and the
@@ -264,7 +264,7 @@ describe("grounding a status in what the unit actually said", () => {
     expect(groundedIn("Dispatch, King 41, I'm at the station", "showing 10-8")).toBe(false);
     expect(groundedIn("suspect in a red hoodie", "in custody")).toBe(false);
     expect(groundedIn("show me out at Grove and Jefferson", "out at Elgin and Vespucci")).toBe(
-      false
+      false,
     );
   });
 
@@ -272,7 +272,7 @@ describe("grounding a status in what the unit actually said", () => {
     // Order and adjacency still hold, so a status cannot be assembled out of
     // scattered words the unit happened to use.
     expect(groundedIn("I'm out at the station and the suspect is in custody", "station in")).toBe(
-      false
+      false,
     );
   });
 
@@ -427,7 +427,7 @@ describe("a tool argument that is a placeholder rather than a value", () => {
       resolveSelfReference(declaring, "lift", {
         ...context,
         transcript: "41, can you lift it for me?",
-      })
+      }),
     ).toBeNull();
   });
 

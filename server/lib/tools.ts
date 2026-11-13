@@ -37,7 +37,6 @@ import type { AiTool, AiTurnContext, ToolResult } from "./types";
 export type { ToolResult };
 export { callLuaSafely };
 
-
 /**
  * Ceiling on the tool list handed to the model.
  *
@@ -97,9 +96,7 @@ export function describeTools(context: AiTurnContext): AiTool[] {
    * make, hoisted rather than repeated.
    */
   const callTurn = context.trigger === "call_intake" || context.serverId <= 0;
-  const luaOffered = callTurn
-    ? []
-    : asArray(callLuaSafely<unknown>("getTools", [context], []));
+  const luaOffered = callTurn ? [] : asArray(callLuaSafely<unknown>("getTools", [context], []));
   const luaIds = new Set<string>();
   for (const entry of luaOffered) {
     if (!entry || typeof entry !== "object") continue;
@@ -289,7 +286,7 @@ export function isPlaceholderValue(tool: AiTool, input: string): boolean {
   const declared = new Set(
     normalize(`${tool.id} ${tool.description ?? ""} ${tool.input ?? ""}`)
       .split(" ")
-      .filter(Boolean)
+      .filter(Boolean),
   );
   return content.every((word) => declared.has(word));
 }
@@ -358,7 +355,7 @@ const SELF_REQUEST =
 export function resolveSelfReference(
   tool: AiTool,
   argument: string,
-  context: Pick<AiTurnContext, "trigger" | "transcript" | "serverId" | "callsign" | "unitId">
+  context: Pick<AiTurnContext, "trigger" | "transcript" | "serverId" | "callsign" | "unitId">,
 ): string | null {
   if (!isPlaceholderValue(tool, argument)) return null;
   if (inputMustBeQuoted(tool)) return null;
@@ -537,7 +534,7 @@ function inputMustBeQuoted(tool: AiTool): boolean {
 export function argumentRefusal(
   tool: AiTool,
   argument: string,
-  context: Pick<AiTurnContext, "trigger" | "transcript" | "serverId" | "callsign" | "unitId">
+  context: Pick<AiTurnContext, "trigger" | "transcript" | "serverId" | "callsign" | "unitId">,
 ): string | null {
   // Before anything else, and for every tool: a placeholder is not a value. A lookup run
   // on "plate" or "me" answers with real-looking data for nothing, which is worse than
@@ -545,7 +542,10 @@ export function argumentRefusal(
   // which `runTool` resolves to their callsign rather than refusing — see
   // `resolveSelfReference`, and note this agrees with it so the gate and the run cannot
   // disagree about whether the turn was actionable.
-  if (isPlaceholderValue(tool, argument) && resolveSelfReference(tool, argument, context) === null) {
+  if (
+    isPlaceholderValue(tool, argument) &&
+    resolveSelfReference(tool, argument, context) === null
+  ) {
     return "you have not given me that yet";
   }
 
@@ -567,7 +567,7 @@ export function argumentRefusal(
 export async function runTool(
   tool: AiTool,
   input: string,
-  context: AiTurnContext
+  context: AiTurnContext,
 ): Promise<ToolResult> {
   const trimmed = input.trim().slice(0, MAX_INPUT_CHARS);
 

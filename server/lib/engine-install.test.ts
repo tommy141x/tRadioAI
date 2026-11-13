@@ -68,7 +68,10 @@ describe("the shipped lockfile", () => {
     // dispatcher being broken on Linux only.
     const archives = readArchives(REPO);
     for (const platform of ["win", "linux"] as const) {
-      const caps = archives.filter((a) => a.platform === platform).map((a) => a.capability).sort();
+      const caps = archives
+        .filter((a) => a.platform === platform)
+        .map((a) => a.capability)
+        .sort();
       expect(caps).toEqual(["speech", "text", "transcription"]);
     }
   });

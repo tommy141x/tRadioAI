@@ -301,7 +301,7 @@ describe("call_another_channel", () => {
   test("refuses when nothing was written to put out", async () => {
     const result = await findBuiltin("call_another_channel")!.run(
       withNeighbour,
-      "Blaine County DISP"
+      "Blaine County DISP",
     );
     expect(result.ok).toBe(false);
     expect(result.message).toContain("did not say what");
@@ -310,7 +310,7 @@ describe("call_another_channel", () => {
   test("refuses a channel that is not on the system", async () => {
     const result = await findBuiltin("call_another_channel")!.run(
       withNeighbour,
-      "Fire Control: we need an engine"
+      "Fire Control: we need an engine",
     );
     expect(result.ok).toBe(false);
     expect(result.message).toContain("no channel called");
@@ -321,7 +321,7 @@ describe("call_another_channel", () => {
     // names the unit it just gave the call to as though it were a channel.
     const result = await findBuiltin("call_another_channel")!.run(
       withUnits,
-      "King 41: incident at 12 Magellan Avenue"
+      "King 41: incident at 12 Magellan Avenue",
     );
     expect(result.ok).toBe(false);
     expect(result.message).toContain("is a unit on this channel");
@@ -337,12 +337,12 @@ describe("call_another_channel", () => {
     // channel named like "LSPD-1". A spaced " - " is still a separator.
     const hyphenated = await findBuiltin("call_another_channel")!.run(
       withUnits,
-      "1-ADAM-12: we need an engine"
+      "1-ADAM-12: we need an engine",
     );
     expect(hyphenated.message).toContain('no channel called "1-ADAM-12"');
     const spaced = await findBuiltin("call_another_channel")!.run(
       withUnits,
-      "Blaine County DISP - we need an engine"
+      "Blaine County DISP - we need an engine",
     );
     expect(spaced.message).not.toContain("did not say what");
   });
@@ -351,7 +351,7 @@ describe("call_another_channel", () => {
     for (const written of ["king41", "KING-41", "  King  41 "]) {
       const result = await findBuiltin("call_another_channel")!.run(
         withUnits,
-        `${written}: incident at 12 Magellan Avenue`
+        `${written}: incident at 12 Magellan Avenue`,
       );
       expect(result.message).toContain("is a unit on this channel");
     }
@@ -362,7 +362,7 @@ describe("call_another_channel", () => {
     // everything would pass every assertion above it.
     const result = await findBuiltin("call_another_channel")!.run(
       withUnits,
-      "Blaine County DISP: we need an engine"
+      "Blaine County DISP: we need an engine",
     );
     expect(result.message).not.toContain("is a unit on this channel");
   });
@@ -378,7 +378,7 @@ describe("patch_channels", () => {
   test("refuses rather than guessing at a channel it cannot resolve", async () => {
     const result = await findBuiltin("patch_channels")!.run(
       withNeighbour,
-      "Blaine County DISP and the fire channel"
+      "Blaine County DISP and the fire channel",
     );
     expect(result.ok).toBe(false);
     expect(result.message).toContain("fire channel");

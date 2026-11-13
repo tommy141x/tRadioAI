@@ -36,7 +36,6 @@ import {
 import { speechRoute } from "./speech-dialect";
 import type { AiDispatchConfig, VoiceGender } from "./types";
 
-
 /** One capability's resolved endpoint, ready to call. Local and hosted look identical here. */
 export interface CapabilityEndpoint {
   /** The full URL to POST to, route included. */
@@ -201,7 +200,7 @@ export function providerPlan(): ProviderPlan {
  */
 export async function endpointFor(
   capability: Capability,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<CapabilityEndpoint | null> {
   const resolved = plan[capability];
   // The ceiling is consulted here rather than in the turn path because this is the one
@@ -387,7 +386,7 @@ function demeanorKey(value: unknown): string {
   if (isDemeanor(wanted)) return wanted;
   aiLog.warn(
     `config: unknown dispatcher demeanor ${JSON.stringify(value)} — using ` +
-      `${DEFAULT_DEMEANOR}. One of: ${Object.keys(DEMEANORS).join(", ")}`
+      `${DEFAULT_DEMEANOR}. One of: ${Object.keys(DEMEANORS).join(", ")}`,
   );
   return DEFAULT_DEMEANOR;
 }
@@ -432,9 +431,7 @@ export function applyAiConfig(raw: unknown): void {
       const value = Number(payload.turnCooldownMs);
       // Capped at a minute. A cooldown longer than that is indistinguishable from the
       // dispatcher having stopped answering that unit, which is a support ticket.
-      return Number.isFinite(value)
-        ? Math.min(60000, Math.max(0, value))
-        : DEFAULTS.turnCooldownMs;
+      return Number.isFinite(value) ? Math.min(60000, Math.max(0, value)) : DEFAULTS.turnCooldownMs;
     })(),
     hostedCallsPerMinute: (() => {
       const value = Number(payload.hostedCallsPerMinute);
@@ -470,7 +467,7 @@ export function applyAiConfig(raw: unknown): void {
 
   aiLog.debug(
     `config: enabled=${current.enabled} channels=${current.channels.length} ` +
-      `yield=${current.yieldToDispatcher} voice=${current.voiceGender}`
+      `yield=${current.yieldToDispatcher} voice=${current.voiceGender}`,
   );
   // Same level as the summary above it: which engine each capability resolved to is
   // a steady-state fact the operator set in config.lua and can read back there.

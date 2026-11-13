@@ -37,7 +37,8 @@ interface Seen {
 }
 
 let seen: Seen[] = [];
-let handler: (request: Seen) => Response | Promise<Response> = () => new Response("unset", { status: 500 });
+let handler: (request: Seen) => Response | Promise<Response> = () =>
+  new Response("unset", { status: 500 });
 let server: ReturnType<typeof Bun.serve>;
 let base = "";
 
@@ -92,7 +93,8 @@ const json = (value: unknown, status = 200) =>
 
 const chat = (content: string) => json({ choices: [{ message: { content } }] });
 
-const DECISION = '{"actions":[{"tool":"unit_status","input":"10-8"}],"reply":"King 41, copy","kind":"report"}';
+const DECISION =
+  '{"actions":[{"tool":"unit_status","input":"10-8"}],"reply":"King 41, copy","kind":"report"}';
 
 /** A little-endian 16-bit mono WAV, the one thing Groq's speech endpoint returns. */
 function wavBytes(samples: number, rate: number): Uint8Array {
@@ -127,11 +129,19 @@ const bearer = (request: Seen) => request.headers.authorization;
 describe("OpenAI", () => {
   const openai = (request: Seen): Response => {
     if (bearer(request) !== "Bearer sk-test-key") {
-      return json({ error: { message: "Incorrect API key provided", type: "invalid_request_error" } }, 401);
+      return json(
+        { error: { message: "Incorrect API key provided", type: "invalid_request_error" } },
+        401,
+      );
     }
     if (request.path === "/v1/chat/completions") {
       if (typeof request.json?.model !== "string" || request.json.model === "") {
-        return json({ error: { message: "you must provide a model parameter", type: "invalid_request_error" } }, 400);
+        return json(
+          {
+            error: { message: "you must provide a model parameter", type: "invalid_request_error" },
+          },
+          400,
+        );
       }
       return chat(DECISION);
     }
@@ -150,7 +160,7 @@ describe("OpenAI", () => {
     expect(note).toContain("providers.text.model");
 
     await expect(
-      createHttpProvider().decide("sys", "prompt", tools, AbortSignal.timeout(2000))
+      createHttpProvider().decide("sys", "prompt", tools, AbortSignal.timeout(2000)),
     ).rejects.toThrow(/text is unavailable/);
     expect(seen).toHaveLength(0);
   });
@@ -160,7 +170,12 @@ describe("OpenAI", () => {
     keys.tradioai_openai_key = "sk-test-key";
     configure({ text: { provider: "openai", model: "gpt-4o-mini", baseUrl: `${base}/v1` } });
 
-    const decision = await createHttpProvider().decide("sys", "prompt", tools, AbortSignal.timeout(2000));
+    const decision = await createHttpProvider().decide(
+      "sys",
+      "prompt",
+      tools,
+      AbortSignal.timeout(2000),
+    );
 
     expect(decision.actions).toEqual([{ tool: "unit_status", input: "10-8" }]);
     expect(decision.reply).toBe("King 41, copy");
@@ -175,7 +190,7 @@ describe("OpenAI", () => {
     configure({ text: { provider: "openai", model: "gpt-4o-mini", baseUrl: `${base}/v1` } });
 
     await expect(
-      createHttpProvider().decide("sys", "prompt", tools, AbortSignal.timeout(2000))
+      createHttpProvider().decide("sys", "prompt", tools, AbortSignal.timeout(2000)),
     ).rejects.toThrow(/HTTP 401.*Incorrect API key/);
   });
 
@@ -193,7 +208,7 @@ describe("OpenAI", () => {
     const text = await createHttpProvider().transcribe(
       { bytes: new Uint8Array([1, 2, 3]), mime: "audio/wav", filename: "transmission.wav" },
       AbortSignal.timeout(2000),
-      "dispatch, King 41"
+      "dispatch, King 41",
     );
 
     expect(text).toBe("King 41 to dispatch");
@@ -204,13 +219,18 @@ describe("OpenAI", () => {
   test("speech asks for raw PCM and reads it back at OpenAI's documented rate", async () => {
     handler = (request) => {
       if (request.path !== "/v1/audio/speech") return json({}, 404);
-      if (request.json?.response_format !== "pcm") return json({ error: { message: "unsupported format" } }, 400);
+      if (request.json?.response_format !== "pcm")
+        return json({ error: { message: "unsupported format" } }, 400);
       return new Response(new Uint8Array(4800), { status: 200 });
     };
     keys.tradioai_openai_key = "sk-test-key";
     configure({ speech: { provider: "openai", model: "tts-1", baseUrl: `${base}/v1` } });
 
-    const speech = await createHttpProvider().speak("Go ahead, King 41", "female", AbortSignal.timeout(2000));
+    const speech = await createHttpProvider().speak(
+      "Go ahead, King 41",
+      "female",
+      AbortSignal.timeout(2000),
+    );
     expect(speech.sampleRate).toBe(24000);
     expect(speech.pcm.length).toBe(2400);
     expect(seen[0]?.json?.model).toBe("tts-1");
@@ -230,7 +250,7 @@ describe("Groq", () => {
             code: "invalid_response_format",
           },
         },
-        400
+        400,
       );
     }
     return new Response(wavBytes(2400, 24000), { status: 200 });
@@ -243,7 +263,11 @@ describe("Groq", () => {
       speech: { provider: "groq", model: "playai-tts", baseUrl: `${base}/openai/v1` },
     });
 
-    const speech = await createHttpProvider().speak("Go ahead", "female", AbortSignal.timeout(2000));
+    const speech = await createHttpProvider().speak(
+      "Go ahead",
+      "female",
+      AbortSignal.timeout(2000),
+    );
 
     expect(seen).toHaveLength(1);
     expect(seen[0]?.json?.response_format).toBe("wav");
@@ -278,7 +302,7 @@ describe("Groq", () => {
             code: "json_validate_failed",
           },
         },
-        400
+        400,
       );
     }
     return chat(`Let me think about this.\n\n${DECISION}`);
@@ -291,7 +315,12 @@ describe("Groq", () => {
       text: { provider: "groq", model: "openai/gpt-oss-20b", baseUrl: `${base}/openai/v1` },
     });
 
-    const decision = await createHttpProvider().decide("sys", "prompt", tools, AbortSignal.timeout(2000));
+    const decision = await createHttpProvider().decide(
+      "sys",
+      "prompt",
+      tools,
+      AbortSignal.timeout(2000),
+    );
 
     expect(decision.actions).toEqual([{ tool: "unit_status", input: "10-8" }]);
     expect(seen).toHaveLength(1);
@@ -314,7 +343,7 @@ describe("Groq", () => {
       "prompt",
       tools,
       AbortSignal.timeout(3000),
-      (draft) => drafts.push(draft)
+      (draft) => drafts.push(draft),
     );
 
     expect(decision.reply).toBe("King 41, copy");
@@ -326,7 +355,15 @@ describe("Vercel AI Gateway", () => {
   test("speech is never sent to it: the gateway has no /v1/audio/speech, so it resolves local", async () => {
     handler = (request) =>
       request.path === "/v1/audio/speech"
-        ? json({ error: { message: "Invalid URL (POST /v1/audio/speech)", type: "invalid_request_error" } }, 404)
+        ? json(
+            {
+              error: {
+                message: "Invalid URL (POST /v1/audio/speech)",
+                type: "invalid_request_error",
+              },
+            },
+            404,
+          )
         : chat(DECISION);
     keys.tradioai_vercel_key = "vck-test";
     configure({ speech: { provider: "vercel", model: "x", baseUrl: `${base}/v1` } });
@@ -338,23 +375,33 @@ describe("Vercel AI Gateway", () => {
     // The call itself goes to the local engine, which is not installed here: what
     // matters is that it was the local engine that failed and the gateway heard nothing.
     await expect(
-      createHttpProvider().speak("Go ahead", "female", AbortSignal.timeout(2000))
+      createHttpProvider().speak("Go ahead", "female", AbortSignal.timeout(2000)),
     ).rejects.toThrow(/speech failed: no local speech runtime/);
     expect(seen.filter((request) => request.path.includes("audio"))).toHaveLength(0);
   });
 
   test("text is served: that part of the gateway is OpenAI-shaped", async () => {
-    handler = (request) => (request.path === "/v1/chat/completions" ? chat(DECISION) : json({}, 404));
+    handler = (request) =>
+      request.path === "/v1/chat/completions" ? chat(DECISION) : json({}, 404);
     keys.tradioai_vercel_key = "vck-test";
     configure({ text: { provider: "vercel", model: "openai/gpt-4o-mini", baseUrl: `${base}/v1` } });
 
-    const decision = await createHttpProvider().decide("sys", "prompt", tools, AbortSignal.timeout(2000));
+    const decision = await createHttpProvider().decide(
+      "sys",
+      "prompt",
+      tools,
+      AbortSignal.timeout(2000),
+    );
     expect(decision.reply).toBe("King 41, copy");
     expect(seen[0]?.json?.model).toBe("openai/gpt-4o-mini");
   });
 
   test("transcription is not sent to it either", () => {
-    const resolved = resolveCapability("transcription", { provider: "vercel", model: "x", hasKey: true });
+    const resolved = resolveCapability("transcription", {
+      provider: "vercel",
+      model: "x",
+      hasKey: true,
+    });
     expect(resolved.provider).toBe("local");
     expect(resolved.note).toContain("does not serve transcription");
   });
@@ -362,16 +409,25 @@ describe("Vercel AI Gateway", () => {
 
 describe("OpenRouter and ElevenLabs", () => {
   test("OpenRouter serves text and nothing else", () => {
-    expect(resolveCapability("text", { provider: "openrouter", model: "m", hasKey: true }).hosted).toBe(true);
-    expect(resolveCapability("speech", { provider: "openrouter", model: "m", hasKey: true }).provider).toBe("local");
-    expect(resolveCapability("transcription", { provider: "openrouter", model: "m", hasKey: true }).provider).toBe("local");
+    expect(
+      resolveCapability("text", { provider: "openrouter", model: "m", hasKey: true }).hosted,
+    ).toBe(true);
+    expect(
+      resolveCapability("speech", { provider: "openrouter", model: "m", hasKey: true }).provider,
+    ).toBe("local");
+    expect(
+      resolveCapability("transcription", { provider: "openrouter", model: "m", hasKey: true })
+        .provider,
+    ).toBe("local");
   });
 
   test("ElevenLabs speech: the voice is in the path, the key in xi-api-key, never a bearer", async () => {
     handler = (request) => {
       if (!request.path.startsWith("/v1/text-to-speech/")) return json({}, 404);
-      if (request.headers.authorization) return json({ detail: { status: "invalid_authorization" } }, 401);
-      if (request.headers["xi-api-key"] !== "xi-test-key") return json({ detail: { status: "invalid_api_key" } }, 401);
+      if (request.headers.authorization)
+        return json({ detail: { status: "invalid_authorization" } }, 401);
+      if (request.headers["xi-api-key"] !== "xi-test-key")
+        return json({ detail: { status: "invalid_api_key" } }, 401);
       return new Response(new Uint8Array(4800), { status: 200 });
     };
     keys.tradioai_elevenlabs_key = "xi-test-key";
@@ -384,7 +440,11 @@ describe("OpenRouter and ElevenLabs", () => {
       provider: { voices: { female: ["VOICE_ID_1"] } },
     });
 
-    const speech = await createHttpProvider().speak("Go ahead", "female", AbortSignal.timeout(2000));
+    const speech = await createHttpProvider().speak(
+      "Go ahead",
+      "female",
+      AbortSignal.timeout(2000),
+    );
 
     expect(speech.pcm.length).toBe(2400);
     expect(seen[0]?.path).toBe("/v1/text-to-speech/VOICE_ID_1");
@@ -400,7 +460,7 @@ describe("a key that is missing", () => {
     configure({ text: { provider: "openai", model: "gpt-4o-mini", baseUrl: `${base}/v1` } });
 
     await expect(
-      createHttpProvider().decide("sys", "prompt", tools, AbortSignal.timeout(2000))
+      createHttpProvider().decide("sys", "prompt", tools, AbortSignal.timeout(2000)),
     ).rejects.toThrow(/text is unavailable/);
     expect(seen).toHaveLength(0);
   });
@@ -414,7 +474,7 @@ describe("timeouts and transport failures", () => {
 
     const started = Date.now();
     await expect(
-      createHttpProvider().decide("sys", "prompt", tools, AbortSignal.timeout(150))
+      createHttpProvider().decide("sys", "prompt", tools, AbortSignal.timeout(150)),
     ).rejects.toThrow();
     expect(Date.now() - started).toBeLessThan(2000);
     // The request did go out: this is the hang, not a refusal to ask.
@@ -430,8 +490,8 @@ describe("timeouts and transport failures", () => {
     await expect(
       createHttpProvider().transcribe(
         { bytes: new Uint8Array([1]), mime: "audio/wav", filename: "t.wav" },
-        AbortSignal.timeout(150)
-      )
+        AbortSignal.timeout(150),
+      ),
     ).rejects.toThrow();
     expect(Date.now() - started).toBeLessThan(2000);
   });
@@ -455,9 +515,11 @@ describe("timeouts and transport failures", () => {
 
   test("a connection that is refused is a transport error, not a hang", async () => {
     keys.tradioai_openai_key = "sk-test-key";
-    configure({ text: { provider: "openai", model: "gpt-4o-mini", baseUrl: "http://127.0.0.1:1/v1" } });
+    configure({
+      text: { provider: "openai", model: "gpt-4o-mini", baseUrl: "http://127.0.0.1:1/v1" },
+    });
     await expect(
-      createHttpProvider().decide("sys", "prompt", tools, AbortSignal.timeout(2000))
+      createHttpProvider().decide("sys", "prompt", tools, AbortSignal.timeout(2000)),
     ).rejects.toThrow();
   });
 
@@ -466,7 +528,12 @@ describe("timeouts and transport failures", () => {
     keys.tradioai_openai_key = "sk-test-key";
     configure({ text: { provider: "openai", model: "gpt-4o-mini", baseUrl: `${base}/v1` } });
 
-    const decision = await createHttpProvider().decide("sys", "prompt", tools, AbortSignal.timeout(2000));
+    const decision = await createHttpProvider().decide(
+      "sys",
+      "prompt",
+      tools,
+      AbortSignal.timeout(2000),
+    );
     expect(decision.actions).toEqual([]);
     expect(decision.reply).toBe("");
   });

@@ -143,7 +143,7 @@ describe("applyAiConfig", () => {
       "bin",
       process.platform === "win32" ? "win" : "linux",
       "piper",
-      process.platform === "win32" ? "piper.exe" : "piper"
+      process.platform === "win32" ? "piper.exe" : "piper",
     );
     mkdirSync(dirname(binary), { recursive: true });
     writeFileSync(binary, "");

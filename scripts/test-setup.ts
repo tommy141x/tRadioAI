@@ -14,3 +14,4 @@ g.GetResourcePath ??= () => process.cwd();
 g.GetResourceState ??= () => "missing";
 g.on ??= () => {};
 g.emit ??= () => {};
+g.RegisterCommand ??= () => {};

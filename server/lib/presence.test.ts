@@ -1,7 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { type HumanDispatcher, humanDispatcherOn, humanDispatcherPresent } from "./presence";
 
-const human = (serverId: number, selected: number | null, listening: number[] = []): HumanDispatcher => ({
+const human = (
+  serverId: number,
+  selected: number | null,
+  listening: number[] = [],
+): HumanDispatcher => ({
   serverId,
   selected,
   listening,

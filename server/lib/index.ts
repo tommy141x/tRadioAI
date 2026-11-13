@@ -399,8 +399,8 @@ function syncReadiness(): void {
     hasAudience(
       covered,
       covered.flatMap((frequency) => tradio.usersOn(frequency)),
-      tradio.isStationId
-    )
+      tradio.isStationId,
+    ),
   );
 }
 
@@ -484,10 +484,13 @@ function rosterFor(frequency: number, origin: Point | null): RosterUnit[] {
  */
 function directory(origin: Point | null): ChannelEntry[] {
   const live = tradio.patches();
-  const zones: Record<string, { name: string; Channels: Array<{ frequency: number; name: string }> }> =
-    {};
+  const zones: Record<
+    string,
+    { name: string; Channels: Array<{ frequency: number; name: string }> }
+  > = {};
   for (const channel of tradio.channels()) {
-    const zone = (zones[channel.zoneName] ??= { name: channel.zoneName, Channels: [] });
+    const zone = zones[channel.zoneName] ?? { name: channel.zoneName, Channels: [] };
+    zones[channel.zoneName] = zone;
     zone.Channels.push({ frequency: channel.frequency, name: channel.name });
   }
   return buildDirectory({
@@ -628,7 +631,7 @@ async function respond(
   signal: AbortSignal,
   journal: TurnJournal,
   /** Push the turn's deadline out by the length of audio just put on the air. */
-  allowAirtime: (ms: number) => void
+  allowAirtime: (ms: number) => void,
 ): Promise<void> {
   const config = aiConfig();
   const onCall = context.trigger === "call_intake";
@@ -641,7 +644,7 @@ async function respond(
         // Already resolved to a known key by `demeanorKey`, so this is a lookup and
         // not a decision. The call-taker prompt deliberately gets none of it: a radio
         // manner is wrong on a phone line, where almost every rule inverts.
-        config.demeanor
+        config.demeanor,
       );
   const tools = describeTools(context);
 
@@ -759,7 +762,7 @@ async function respond(
     (raw) => {
       journal.decided = raw;
     },
-    onCall ? "call" : "radio"
+    onCall ? "call" : "radio",
   );
   journal.stages.decision = Date.now() - decisionStarted;
   // A decision that finished without ever producing a draft — a provider that
@@ -792,7 +795,7 @@ async function respond(
     chosen.push(recorded);
     aiLog.info(
       `turn: ${recorded.tool}("${recorded.input}") recorded from kind="${decision.kind}" ` +
-        "— the model classified the report and chose no tool"
+        "— the model classified the report and chose no tool",
     );
   }
 
@@ -810,7 +813,7 @@ async function respond(
     const result = await runTool(tool, action.input, context);
     aiLog.info(
       `[audit] ai:action tool=${tool.id} input=${JSON.stringify(action.input)} ` +
-        `unit=${context.callsign || context.serverId} freq=${context.frequency} ok=${result.ok}`
+        `unit=${context.callsign || context.serverId} freq=${context.frequency} ok=${result.ok}`,
     );
     outcomes.push({
       tool: tool.id,
@@ -1044,7 +1047,9 @@ async function respond(
   if (onCall) {
     const call = answeredOn(context.frequency);
     if (call?.closing && !tradio.end911(call.callId)) {
-      aiLog.warn(`call: ${call.callId} could not be ended — the caller will hear the line stay open`);
+      aiLog.warn(
+        `call: ${call.callId} could not be ended — the caller will hear the line stay open`,
+      );
     }
     return;
   }
@@ -1076,7 +1081,7 @@ async function respond(
     const called = unitNamedIn(
       `${journal.reply} ${journal.followUp}`,
       context.roster,
-      context.serverId
+      context.serverId,
     );
     expectReplyFrom(context.frequency, called ?? context.serverId);
     clearWaiting(context.frequency, context.serverId);
@@ -1104,7 +1109,7 @@ async function answerCallUp(
   context: AiTurnContext,
   signal: AbortSignal,
   journal: TurnJournal,
-  allowAirtime: (ms: number) => void
+  allowAirtime: (ms: number) => void,
 ): Promise<boolean> {
   const config = aiConfig();
   const name = context.callsign || context.unitId;
@@ -1170,7 +1175,7 @@ async function runTurn(transmission: Transmission): Promise<void> {
   const journal = startTurn(
     onCall ? "call_intake" : "transmission",
     frequency,
-    transmission.serverId
+    transmission.serverId,
   );
   try {
     const clip = clipOf(transmission);
@@ -1201,7 +1206,7 @@ async function runTurn(transmission: Transmission): Promise<void> {
           [],
           // The server's own codes, so the recogniser expects the tokens this channel
           // actually uses rather than the ones another agency does.
-          config.tenCodes
+          config.tenCodes,
         );
     const transcribeStarted = Date.now();
     const transcript = await provider().transcribe(clip, controller.signal, bias);
@@ -1257,7 +1262,7 @@ async function runTurn(transmission: Transmission): Promise<void> {
       roster
         .filter((unit) => unit.serverId !== transmission.serverId)
         .flatMap((unit) => [unit.callsign, unit.unitId])
-        .filter(Boolean)
+        .filter(Boolean),
     );
     // The route that carries almost all realistic traffic. Real units lead with
     // their own number rather than hailing dispatch — measured at 0.45% saying
@@ -1467,7 +1472,7 @@ function onTransmission(transmission: Transmission): void {
       noteWaiting(frequency, evicted.serverId, identity(evicted.serverId).callsign);
       aiLog.debug(
         `turn: ${frequency} is backed up — dropping the oldest queued transmission ` +
-          `(${evicted.serverId}) to make room`
+          `(${evicted.serverId}) to make room`,
       );
     }
     queued.push(transmission);
@@ -1583,7 +1588,9 @@ async function waitForCaller(call: Call911): Promise<boolean> {
     // can stand in for them and be greeted in their place.
     const joined = tradio
       .usersOn(call.frequency)
-      .some((user) => user.serverId === call.callerServerId && user.speakerChannel === call.frequency);
+      .some(
+        (user) => user.serverId === call.callerServerId && user.speakerChannel === call.frequency,
+      );
     if (joined) return true;
     if (Date.now() >= until) return false;
     await sleep(CALL_JOIN_POLL_MS);
@@ -1689,7 +1696,7 @@ async function answerCall(call: Call911): Promise<void> {
         journal.stages.speechPreparation = Date.now() - speechStarted;
         journal.airedMs += ms;
         clock.allowAirtime(journal.airedMs);
-      }
+      },
     );
     if (aired) {
       journal.aired = true;
@@ -1788,7 +1795,7 @@ function onExternalCall(payload: unknown): void {
       priority: field(record.priority, 32),
       service: field(record.service, 32),
     },
-    coords
+    coords,
   );
 }
 
@@ -1952,7 +1959,7 @@ function onCallQueued(call: Call911): void {
       priority: "",
       service: "",
     },
-    call.coords
+    call.coords,
   );
 }
 
@@ -2002,6 +2009,11 @@ export function installDispatcher(): void {
       }
       resetWeights();
       closeStation();
+      forgetStation();
+      tapFrequencies = null;
+      tapFailedAt = 0;
+      lastProbeAt = 0;
+      lastIdleReason = null;
       tradio.resetHooks();
       busy.clear();
       queues.clear();

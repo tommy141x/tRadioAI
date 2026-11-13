@@ -13,14 +13,14 @@ describe("measured acknowledgement / rewrite pairs", () => {
     expect(
       saysTheSameThing(
         "King 41, copy, second unit requested.",
-        "K41, second unit requested acknowledged."
-      )
+        "K41, second unit requested acknowledged.",
+      ),
     ).toBe(true);
   });
 
   test("a rewrite that restates the status is a repeat", () => {
     expect(
-      saysTheSameThing("King 41, copy, back in service.", "K41, status is now back in service.")
+      saysTheSameThing("King 41, copy, back in service.", "K41, status is now back in service."),
     ).toBe(true);
   });
 
@@ -32,8 +32,8 @@ describe("measured acknowledgement / rewrite pairs", () => {
     expect(
       saysTheSameThing(
         "King 41, copy, out at the corner of Grove and Jefferson.",
-        "King 41, show me out at the station."
-      )
+        "King 41, show me out at the station.",
+      ),
     ).toBe(false);
   });
 });
@@ -41,7 +41,7 @@ describe("measured acknowledgement / rewrite pairs", () => {
 describe("information the unit actually asked for", () => {
   test("a plate coming back airs", () => {
     expect(
-      saysTheSameThing("King 41, copy, stand by.", "King 41, plate returns a 2019 Ford, no wants.")
+      saysTheSameThing("King 41, copy, stand by.", "King 41, plate returns a 2019 Ford, no wants."),
     ).toBe(false);
   });
 
@@ -49,20 +49,20 @@ describe("information the unit actually asked for", () => {
     expect(
       saysTheSameThing(
         "King 41, copy, back in service.",
-        "King 41, negative, unable to show you in service."
-      )
+        "King 41, negative, unable to show you in service.",
+      ),
     ).toBe(false);
   });
 
   test("another unit's callsign is new information", () => {
     expect(
-      saysTheSameThing("King 41, copy, second unit requested.", "King 41, King 22 is en route.")
+      saysTheSameThing("King 41, copy, second unit requested.", "King 41, King 22 is en route."),
     ).toBe(false);
   });
 
   test("a time is new information even among familiar words", () => {
     expect(
-      saysTheSameThing("King 41, copy, back in service.", "King 41, in service at 14:32.")
+      saysTheSameThing("King 41, copy, back in service.", "King 41, in service at 14:32."),
     ).toBe(false);
   });
 });
@@ -87,7 +87,7 @@ describe("degenerate input", () => {
 
   test("punctuation and case do not make a line new", () => {
     expect(saysTheSameThing("King 41, copy, back in service.", "king 41 -- BACK IN SERVICE!")).toBe(
-      true
+      true,
     );
   });
 
@@ -104,6 +104,6 @@ describe("degenerate input", () => {
  */
 test("a confirmation one word away from the threshold airs", () => {
   expect(
-    saysTheSameThing("King 41, copy, back in service.", "K41, status updated to back in service.")
+    saysTheSameThing("King 41, copy, back in service.", "K41, status updated to back in service."),
   ).toBe(false);
 });

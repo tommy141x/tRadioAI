@@ -8,7 +8,7 @@ describe("sayable", () => {
 
   it("turns line breaks into a pause", () => {
     expect(sayable("Units responding:\n- 1-Adam-12\n- 2-Boy-4")).toBe(
-      "Units responding:, - 1-Adam-12, - 2-Boy-4"
+      "Units responding:, - 1-Adam-12, - 2-Boy-4",
     );
   });
 

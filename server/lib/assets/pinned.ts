@@ -94,7 +94,7 @@ export function parseAsset(raw: unknown): PinnedAsset {
  */
 export function selectAssets(
   assets: readonly PinnedAsset[],
-  capabilities: Iterable<string>
+  capabilities: Iterable<string>,
 ): PinnedAsset[] {
   const wanted = new Set(capabilities);
   return assets.filter((a) => a.capability === undefined || wanted.has(a.capability));
@@ -131,7 +131,7 @@ export function formatBytes(bytes: number): string {
 export function markerVouchesFor(
   marker: AssetMarker | undefined,
   asset: PinnedAsset,
-  stat: { size: number; mtimeMs: number } | undefined
+  stat: { size: number; mtimeMs: number } | undefined,
 ): boolean {
   if (!marker || !stat) return false;
   if (marker.sha256 !== asset.sha256) return false;

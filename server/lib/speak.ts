@@ -92,7 +92,7 @@ function rememberSpeech(spoken: string, gender: VoiceGender, narrowband: Int16Ar
 async function synthesise(
   spoken: string,
   gender: VoiceGender,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<Int16Array | null> {
   const cached = cachedSpeech(spoken, gender);
   if (cached) return cached;
@@ -140,7 +140,7 @@ async function synthesise(
 export async function warmSpeech(
   lines: readonly string[],
   gender: VoiceGender,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<void> {
   for (const line of lines) {
     if (signal.aborted) return;
@@ -200,7 +200,7 @@ export async function airReply(
   text: string,
   gender: VoiceGender,
   signal: AbortSignal,
-  onAudioStart?: (durationMs: number) => void
+  onAudioStart?: (durationMs: number) => void,
 ): Promise<boolean> {
   const spoken = sayable(text);
   if (!spoken) return false;
@@ -211,12 +211,8 @@ export async function airReply(
   const duration = pcmDurationMs(narrowband, NARROWBAND_RATE);
   if (duration === 0) return false;
 
-  const result = await transmitOn(
-    frequency,
-    narrowband,
-    NARROWBAND_RATE,
-    signal,
-    () => onAudioStart?.(duration)
+  const result = await transmitOn(frequency, narrowband, NARROWBAND_RATE, signal, () =>
+    onAudioStart?.(duration),
   );
   if (!result.ok) aiLog.debug(`speak: ${frequency} not aired — ${result.reason}`);
   return result.ok;

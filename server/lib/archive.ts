@@ -110,7 +110,7 @@ function containedPath(root: string, relative: string, archive: string): string 
   if (target !== root && !target.startsWith(root + sep)) {
     throw new Error(
       `${archive}: entry "${relative}" resolves outside the extraction directory. ` +
-        "Refusing to unpack it."
+        "Refusing to unpack it.",
     );
   }
   return target;
@@ -131,7 +131,10 @@ function stripped(name: string, strip: number): string | null {
 
 /** A tar header's octal field. Trailing NULs and spaces, as the format allows. */
 function octal(header: Buffer, offset: number, length: number): number {
-  const text = header.toString("ascii", offset, offset + length).replace(/[\0 ]+$/, "").trim();
+  const text = header
+    .toString("ascii", offset, offset + length)
+    .replace(/[\0 ]+$/, "")
+    .trim();
   if (text === "") return 0;
   const value = Number.parseInt(text, 8);
   if (!Number.isFinite(value)) throw new Error(`unreadable octal field at offset ${offset}`);
@@ -146,7 +149,7 @@ function assertSingleComponent(target: string, name: string, archive: string): v
     throw new Error(
       `${archive}: symlink "${name}" points at "${target}", which is not a sibling. ` +
         "Only single-component symlink targets are accepted — every target in the pinned " +
-        "archives is one, and anything else can walk out of the extraction directory."
+        "archives is one, and anything else can walk out of the extraction directory.",
     );
   }
 }
@@ -207,7 +210,7 @@ export function unpackTarGz(archivePath: string, dest: string, strip: number): U
         `${label}: entry "${name}" has tar type "${type}", which this reader does not ` +
           "implement. The pinned archives contain only files, directories and symlinks; " +
           "an upstream that started shipping hardlinks or pax headers needs this reader " +
-          "extended rather than the entry skipped."
+          "extended rather than the entry skipped.",
       );
     }
 
@@ -265,7 +268,7 @@ export function unpackTarGz(archivePath: string, dest: string, strip: number): U
       throw new Error(
         `${label}: "${link.path}" is declared as a symlink and also written as a file or ` +
           "directory by another entry. Refusing the archive: this is the shape a " +
-          "write-through takes, and there is no correct way to honour both entries."
+          "write-through takes, and there is no correct way to honour both entries.",
       );
     }
     let final = resolve(dirname(link.path), link.target);
@@ -273,7 +276,7 @@ export function unpackTarGz(archivePath: string, dest: string, strip: number): U
       if (hop > links.length) {
         throw new Error(
           `${label}: the symlink chain starting at "${link.path}" does not terminate. ` +
-            "A cycle cannot be materialised, and following it would not halt."
+            "A cycle cannot be materialised, and following it would not halt.",
         );
       }
       // biome-ignore lint/style/noNonNullAssertion: pending.has(final) checked by the loop condition
@@ -283,7 +286,7 @@ export function unpackTarGz(archivePath: string, dest: string, strip: number): U
       throw new Error(
         `${label}: symlink "${link.path}" resolves to "${final}", which no entry in the ` +
           "archive wrote. Refusing rather than leaving behind a name the dynamic linker " +
-          "would fail to load at the first transmission."
+          "would fail to load at the first transmission.",
       );
     }
     mkdirSync(dirname(link.path), { recursive: true });
@@ -342,7 +345,7 @@ export function unpackArchive(archivePath: string, dest: string, strip: number):
   }
   throw new Error(
     `${archivePath}: not a .zip or .tar.gz. The pinned archives are one or the other; ` +
-      "a new kind needs a reader, not a fallback."
+      "a new kind needs a reader, not a fallback.",
   );
 }
 

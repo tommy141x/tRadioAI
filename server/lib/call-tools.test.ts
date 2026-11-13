@@ -68,7 +68,7 @@ function answer(): void {
       coords: null,
       frequency: CALL_FREQUENCY,
     },
-    info
+    info,
   );
 }
 
@@ -166,7 +166,7 @@ describe("hang_up", () => {
     const result = await runTool(
       { id: "hang_up", description: "", input: "" },
       "prowler in a back yard",
-      onCall
+      onCall,
     );
     expect(result.ok).toBe(true);
     // The message is the prompt the closing line gets written from, so it has to
@@ -185,7 +185,7 @@ describe("hang_up", () => {
     const result = await runTool(
       { id: "hang_up", description: "", input: "" },
       "prowler in a back yard",
-      onCall
+      onCall,
     );
     expect(result.ok).toBe(false);
     expect(result.message).toContain("already ended");

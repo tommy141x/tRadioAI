@@ -98,7 +98,7 @@ async function writeMarker(absoluteDest: string, asset: PinnedAsset): Promise<vo
 export async function ensureAssets(
   root: string,
   assets: readonly PinnedAsset[],
-  options: EnsureOptions = {}
+  options: EnsureOptions = {},
 ): Promise<EnsureReport> {
   if (!isAbsolute(root)) throw new Error("ensureAssets requires an absolute resource root");
   const outcomes: AssetOutcome[] = [];

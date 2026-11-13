@@ -58,7 +58,7 @@ export function buildRoster(
   frequency: number,
   users: Iterable<RosterView>,
   describe: (serverId: number) => UnitInfo,
-  origin: Point | null
+  origin: Point | null,
 ): RosterUnit[] {
   const units: RosterUnit[] = [];
 

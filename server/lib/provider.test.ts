@@ -78,7 +78,7 @@ describe("parseDecision", () => {
 
   test("matches a declared tool case-insensitively and returns its canonical id", () => {
     expect(parseDecision('{"tool":"Unit_Status","reply":"copy"}', tools).actions[0]?.tool).toBe(
-      "unit_status"
+      "unit_status",
     );
   });
 
@@ -124,7 +124,7 @@ describe("parseDecision", () => {
 
   test("accepts a numeric input", () => {
     expect(
-      parseDecision('{"tool":"unit_status","input":10,"reply":""}', tools).actions[0]?.input
+      parseDecision('{"tool":"unit_status","input":10,"reply":""}', tools).actions[0]?.input,
     ).toBe("10");
   });
 
@@ -165,7 +165,7 @@ describe("buildMultipart", () => {
     // U+FFFD and shift every offset asserted below.
     const text = Array.from(body, (byte) => String.fromCharCode(byte)).join("");
     expect(text).toContain(
-      `--${boundary}${CRLF}Content-Disposition: form-data; name="model"${CRLF}${CRLF}whisper${CRLF}`
+      `--${boundary}${CRLF}Content-Disposition: form-data; name="model"${CRLF}${CRLF}whisper${CRLF}`,
     );
     expect(text).toContain('name="response_format"');
     expect(text).toContain('name="file"; filename="transmission.wav"');

@@ -116,13 +116,13 @@ const allow = () => [new URL(base).origin];
 describe("origin allowlist", () => {
   test("refuses a url whose starting origin is not allowed", async () => {
     await expect(
-      fetchAsset(pin({ url: "https://example.invalid/m.bin" }), join(root, "m.bin"))
+      fetchAsset(pin({ url: "https://example.invalid/m.bin" }), join(root, "m.bin")),
     ).rejects.toThrow("origin is not allowed");
   });
 
   test("refuses a url carrying credentials", async () => {
     await expect(
-      fetchAsset(pin({ url: "https://u:p@huggingface.co/m.bin" }), join(root, "m.bin"))
+      fetchAsset(pin({ url: "https://u:p@huggingface.co/m.bin" }), join(root, "m.bin")),
     ).rejects.toThrow("credentials");
   });
 
@@ -143,7 +143,7 @@ describe("redirects", () => {
 
   test("a redirect loop terminates instead of hanging", async () => {
     await expect(
-      fetchAsset(pin({ url: `${base}/loop` }), join(root, "m.bin"), { allowOrigins: allow() })
+      fetchAsset(pin({ url: `${base}/loop` }), join(root, "m.bin"), { allowOrigins: allow() }),
     ).rejects.toThrow("too many redirects");
   });
 
@@ -163,7 +163,7 @@ describe("verification", () => {
   test("a body that does not match the pin is rejected and discarded", async () => {
     const dest = join(root, "m.bin");
     await expect(
-      fetchAsset(pin({ url: `${base}/corrupt` }), dest, { allowOrigins: allow() })
+      fetchAsset(pin({ url: `${base}/corrupt` }), dest, { allowOrigins: allow() }),
     ).rejects.toThrow("sha256 mismatch");
     expect(existsSync(dest)).toBe(false);
     // The .part is deleted too: those bytes are wrong, not merely incomplete,
@@ -173,7 +173,7 @@ describe("verification", () => {
 
   test("a body larger than the pin is cut off mid-stream", async () => {
     await expect(
-      fetchAsset(pin({ url: `${base}/oversized` }), join(root, "m.bin"), { allowOrigins: allow() })
+      fetchAsset(pin({ url: `${base}/oversized` }), join(root, "m.bin"), { allowOrigins: allow() }),
     ).rejects.toThrow("exceeds pinned size");
   });
 
@@ -191,7 +191,7 @@ describe("verification", () => {
     // that failure surfaces later as an unreadable model with no trail back here.
     const dest = join(root, "m.bin");
     await expect(
-      fetchAsset(pin({ url: `${base}/truncated` }), dest, { allowOrigins: allow() })
+      fetchAsset(pin({ url: `${base}/truncated` }), dest, { allowOrigins: allow() }),
     ).rejects.toThrow(/aborted|incomplete/);
     expect(existsSync(dest)).toBe(false);
   });
@@ -202,7 +202,7 @@ describe("resume", () => {
     const dest = join(root, "m.bin");
     // A dropped connection leaves a valid prefix behind.
     await expect(
-      fetchAsset(pin({ url: `${base}/truncated` }), dest, { allowOrigins: allow() })
+      fetchAsset(pin({ url: `${base}/truncated` }), dest, { allowOrigins: allow() }),
     ).rejects.toThrow(/aborted|incomplete/);
     expect(existsSync(`${dest}.part`)).toBe(true);
 
@@ -218,7 +218,7 @@ describe("resume", () => {
     // can never complete.
     const dest = join(root, "m.bin");
     await fetchAsset(pin({ url: `${base}/truncated` }), dest, { allowOrigins: allow() }).catch(
-      () => {}
+      () => {},
     );
     expect(readFileSync(`${dest}.part`).length).toBe(BODY.length / 2);
   });
@@ -285,7 +285,7 @@ describe("ensureAssets", () => {
     const report = await ensureAssets(
       root,
       [pin({ id: "bad", dest: "a.bin", url: `${base}/404` }), pin({ id: "good", dest: "b.bin" })],
-      { allowOrigins: allow() }
+      { allowOrigins: allow() },
     );
     expect(report.ok).toBe(false);
     expect(report.outcomes.map((o) => o.status)).toEqual(["failed", "fetched"]);

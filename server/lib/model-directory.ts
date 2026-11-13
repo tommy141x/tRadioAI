@@ -107,9 +107,7 @@ export async function listModels(provider: string): Promise<ModelListResult> {
   if (!key) return { ok: false, reason: "no_key" };
 
   const headers: Record<string, string> =
-    route.dialect === "elevenlabs"
-      ? { "xi-api-key": key }
-      : { Authorization: `Bearer ${key}` };
+    route.dialect === "elevenlabs" ? { "xi-api-key": key } : { Authorization: `Bearer ${key}` };
 
   let result: ModelListResult;
   try {
@@ -119,7 +117,7 @@ export async function listModels(provider: string): Promise<ModelListResult> {
     });
     if (response.status === 401 || response.status === 403) {
       log.warn(
-        `${provider} refused the model list with ${response.status} — the stored key is wrong, revoked, or lacks permission`
+        `${provider} refused the model list with ${response.status} — the stored key is wrong, revoked, or lacks permission`,
       );
       result = { ok: false, reason: "unauthorized" };
     } else if (!response.ok) {
@@ -131,7 +129,7 @@ export async function listModels(provider: string): Promise<ModelListResult> {
     }
   } catch (error) {
     log.warn(
-      `${provider} model list errored: ${error instanceof Error ? error.message : String(error)}`
+      `${provider} model list errored: ${error instanceof Error ? error.message : String(error)}`,
     );
     result = { ok: false, reason: "unreachable" };
   }

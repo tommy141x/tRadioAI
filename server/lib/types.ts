@@ -357,7 +357,7 @@ export interface AiProvider {
      * further along than the line that caused it. Optional and defaulting to
      * `"radio"`, so a provider written before calls existed is still a provider.
      */
-    framing?: "radio" | "call"
+    framing?: "radio" | "call",
   ): Promise<AiDecision>;
   /**
    * Plain text back, used once the action's outcome is known.
@@ -370,6 +370,6 @@ export interface AiProvider {
   speak(
     text: string,
     gender: VoiceGender,
-    signal: AbortSignal
+    signal: AbortSignal,
   ): Promise<{ pcm: Int16Array; sampleRate: number }>;
 }

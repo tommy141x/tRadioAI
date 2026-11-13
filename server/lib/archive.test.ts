@@ -99,9 +99,7 @@ function header(entry: Entry): Buffer {
 }
 
 function buildTarGz(entries: Entry[]): Buffer {
-  return gzipSync(
-    Buffer.concat([...entries.map(header), Buffer.alloc(1024, 0)])
-  );
+  return gzipSync(Buffer.concat([...entries.map(header), Buffer.alloc(1024, 0)]));
 }
 
 function writeTarGz(dir: string, entries: Entry[]): string {
@@ -261,7 +259,9 @@ describe("unpackTarGz — the shapes the pinned archives contain", () => {
       { name: "x/libghost.so.1", type: "2", link: "libghost.so.1.0.0" },
     ]);
 
-    expect(() => unpackTarGz(archive, join(dir, "out"), 1)).toThrow(/no entry in the archive wrote/);
+    expect(() => unpackTarGz(archive, join(dir, "out"), 1)).toThrow(
+      /no entry in the archive wrote/,
+    );
   });
 
   test("a symlink cycle is refused rather than followed forever", () => {
@@ -295,7 +295,7 @@ describe("unpackTarGz — the shapes the pinned archives contain", () => {
       const nasty = statSync(join(out, "nasty")).mode;
       expect(nasty & 0o777).toBe(0o755);
       expect(nasty & 0o4000).toBe(0);
-    }
+    },
   );
 
   test("an entry whose name survives strip but has no parent dir entry is still written", () => {
@@ -321,7 +321,7 @@ describe("unpackTarGz — refusals", () => {
     const d = dir();
     const archive = writeTarGz(d, [{ name: "x/../../evil.txt", body: "PWN" }]);
     expect(() => unpackTarGz(archive, join(d, "out"), 1)).toThrow(
-      /resolves outside the extraction directory/
+      /resolves outside the extraction directory/,
     );
     expect(existsSync(join(d, "evil.txt"))).toBe(false);
   });
@@ -378,7 +378,7 @@ describe("unpackTarGz — refusals", () => {
     const out = join(d, "out");
 
     expect(() => unpackTarGz(archive, out, 1)).toThrow(
-      /declared as a symlink and also written as a file or directory/
+      /declared as a symlink and also written as a file or directory/,
     );
     // The point of the ordering: nothing was written through the link, because
     // the link never existed while writes were happening.
@@ -391,7 +391,7 @@ describe("unpackTarGz — refusals", () => {
     const d = dir();
     const archive = writeTarGz(d, [{ name: "x/hard", type: "1", link: "other" }]);
     expect(() => unpackTarGz(archive, join(d, "out"), 1)).toThrow(
-      /tar type "1", which this reader does not implement/
+      /tar type "1", which this reader does not implement/,
     );
   });
 });
@@ -412,7 +412,7 @@ describe("unpackZip", () => {
     // writeRawZip. Without that the assertion below would be decorative.
     const evil = writeRawZip(d, [{ name: "../../evil.txt", body: "PWN" }]);
     expect(() => unpackZip(evil, join(d, "out2"), 0)).toThrow(
-      /resolves outside the extraction directory/
+      /resolves outside the extraction directory/,
     );
     expect(existsSync(join(d, "evil.txt"))).toBe(false);
   });
@@ -457,7 +457,10 @@ const TAR =
     : "tar";
 
 function tarListing(archive: string): { paths: Set<string>; links: number; files: number } {
-  const text = execFileSync(TAR, ["-tvf", archive], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  const text = execFileSync(TAR, ["-tvf", archive], {
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+  });
   const paths = new Set<string>();
   let links = 0;
   let files = 0;
@@ -470,7 +473,12 @@ function tarListing(archive: string): { paths: Set<string>; links: number; files
     // EIGHT fields before the name, not five — measured, after a parser that
     // assumed five reported 52 of llama's files "missing" when every one was
     // on disk. Symlink lines append " -> target", stripped first.
-    const name = line.replace(/ -> .*$/, "").trim().split(/\s+/).slice(8).join(" ");
+    const name = line
+      .replace(/ -> .*$/, "")
+      .trim()
+      .split(/\s+/)
+      .slice(8)
+      .join(" ");
     if (name === "") continue;
     const relative = name.replace(/\/$/, "").split("/").slice(1).join("/");
     if (relative === "") continue;
@@ -526,7 +534,7 @@ describe("the real pinned tarballs, against system tar", () => {
       console.warn(
         `\n  ⚠️ archive.test.ts: ${found.length}/${REAL.length} real archives present in ` +
           `server/.cache.\n     The reader was tested against synthetic fixtures ONLY.\n` +
-          "     Run `bun run scripts/vendor-local-engine.ts` to populate it.\n"
+          "     Run `bun run scripts/vendor-local-engine.ts` to populate it.\n",
       );
     }
     expect(found.length).toBeGreaterThanOrEqual(0);

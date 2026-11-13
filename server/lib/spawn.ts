@@ -99,8 +99,8 @@ export function launchServer(launch: Launch): Running | { error: string } {
           program: launch.program,
           args: launch.args,
           env: launch.env,
-        })
-      )
+        }),
+      ),
     ) as { pid?: number; error?: string };
   } catch (err) {
     return { error: (err as Error).message };
@@ -199,8 +199,8 @@ export async function runOnce(job: OneShot): Promise<number> {
         args: job.args,
         env: job.env,
         stdin: job.stdin,
-      })
-    )
+      }),
+    ),
   ) as { job?: string; error?: string };
   if (!started.job) throw new Error(started.error || `the launcher refused ${job.program}`);
   return await pollJob(tlib, started.job, job.signal);

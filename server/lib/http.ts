@@ -116,7 +116,7 @@ export function post(options: PostOptions): Promise<HttpReply> {
             text: () => bytes.toString("utf8"),
           });
         });
-      }
+      },
     );
 
     const cancel = () => {
@@ -196,7 +196,7 @@ export async function* postStream(options: PostOptions): AsyncGenerator<string> 
         const parts: Buffer[] = [];
         response.on("data", (chunk: Buffer) => parts.push(chunk));
         response.on("end", () =>
-          fail(new Error(`POST ${options.url} returned ${status}: ${Buffer.concat(parts)}`))
+          fail(new Error(`POST ${options.url} returned ${status}: ${Buffer.concat(parts)}`)),
         );
         response.on("error", fail);
         return;
@@ -214,7 +214,7 @@ export async function* postStream(options: PostOptions): AsyncGenerator<string> 
         wake();
       });
       response.on("error", fail);
-    }
+    },
   );
   request.on("error", fail);
 

@@ -52,7 +52,6 @@ import { aiLog } from "./logger";
 import { discardUnpacked, unpackArchive } from "./archive";
 import { type Capability, localCapabilities, type ProviderPlan } from "./providers";
 
-
 /** The lockfile's `archives` entries, which are `PinnedAsset` plus unpack detail. */
 export interface PinnedArchive extends PinnedAsset {
   engine: string;
@@ -139,7 +138,7 @@ export function readArchives(root: string): PinnedArchive[] {
 export function archivesFor(
   all: readonly PinnedArchive[],
   plan: ProviderPlan,
-  platform = hostPlatform()
+  platform = hostPlatform(),
 ): PinnedArchive[] {
   const wanted = new Set<string>(localCapabilities(plan));
   return all.filter((a) => a.platform === platform && wanted.has(a.capability ?? ""));
@@ -171,8 +170,7 @@ export function isInstalled(root: string, archive: PinnedArchive): boolean {
  */
 export function explainFetchFailure(archive: PinnedArchive, error: Error): string {
   const base =
-    `engine ${archive.id} could not be installed: ${error.message}\n` +
-    `  from ${archive.url}`;
+    `engine ${archive.id} could not be installed: ${error.message}\n` + `  from ${archive.url}`;
   if (/\b404\b|not found/i.test(error.message)) {
     return (
       `${base}\n  That is upstream having removed this build. It is not a problem with your ` +
@@ -197,7 +195,7 @@ export function explainFetchFailure(archive: PinnedArchive, error: Error): strin
 export async function ensureEngines(
   root: string,
   plan: ProviderPlan,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<EngineInstallResult> {
   const requested = archivesFor(readArchives(root), plan);
   const empty: EngineInstallResult = {
@@ -251,12 +249,12 @@ export async function ensureEngines(
       const unpacked = unpackArchive(join(root, archive.dest), dir, archive.strip);
       if (!isInstalled(root, archive)) {
         throw new Error(
-          `${archive.expect} is not in the unpacked archive — upstream moved or renamed it`
+          `${archive.expect} is not in the unpacked archive — upstream moved or renamed it`,
         );
       }
       aiLog.info(
         `engines: ${archive.id} installed — ${unpacked.files} file(s), ` +
-          `${unpacked.linkCopies} link(s) copied -> server/bin/${archive.platform}/${archive.engine}/`
+          `${unpacked.linkCopies} link(s) copied -> server/bin/${archive.platform}/${archive.engine}/`,
       );
       outcomes.push({ id: archive.id, dest: archive.dest, status: fetched.status });
     } catch (err) {

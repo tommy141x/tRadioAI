@@ -66,7 +66,7 @@ export interface FetchOptions {
 export class AssetFetchError extends Error {
   constructor(
     readonly assetId: string,
-    message: string
+    message: string,
   ) {
     super(message);
     this.name = "AssetFetchError";
@@ -98,7 +98,7 @@ function request(
   url: string,
   headers: Record<string, string>,
   signal: AbortSignal | undefined,
-  redirectsLeft: number
+  redirectsLeft: number,
 ): Promise<http.IncomingMessage> {
   return new Promise((resolve, reject) => {
     const parsed = new URL(url);
@@ -143,7 +143,7 @@ function request(
 export async function fetchAsset(
   asset: PinnedAsset,
   absoluteDest: string,
-  options: FetchOptions = {}
+  options: FetchOptions = {},
 ): Promise<void> {
   const { onProgress, signal, stallMs = 120_000 } = options;
   const allow = options.allowOrigins ?? DEFAULT_ORIGINS;
@@ -255,7 +255,7 @@ export async function fetchAsset(
     // that can never complete.
     throw new AssetFetchError(
       asset.id,
-      `${asset.id}: incomplete (${received} of ${asset.bytes} bytes)`
+      `${asset.id}: incomplete (${received} of ${asset.bytes} bytes)`,
     );
   }
 
@@ -267,7 +267,7 @@ export async function fetchAsset(
     await rm(part, { force: true });
     throw new AssetFetchError(
       asset.id,
-      `${asset.id}: sha256 mismatch\n  expected ${asset.sha256}\n  got      ${digest}`
+      `${asset.id}: sha256 mismatch\n  expected ${asset.sha256}\n  got      ${digest}`,
     );
   }
 

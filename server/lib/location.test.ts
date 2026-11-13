@@ -15,7 +15,7 @@ function call(location = ""): AiCallInfo {
 
 function context(
   transcript: string,
-  options: { location?: string; heard?: string[]; said?: string[] } = {}
+  options: { location?: string; heard?: string[]; said?: string[] } = {},
 ): AiTurnContext {
   return {
     trigger: "call_intake",
@@ -40,15 +40,15 @@ describe("whether a call has somewhere to send a unit", () => {
   test("a named street in what they just said counts", () => {
     // The real transcripts from the harness's call cases.
     expect(
-      hasLocationEvidence(context("I'm at 12 Magellan Avenue, the house behind the laundromat."))
+      hasLocationEvidence(context("I'm at 12 Magellan Avenue, the house behind the laundromat.")),
     ).toBe(true);
     expect(
       hasLocationEvidence(
-        context("There's been a crash at Elgin Avenue and Vespucci Boulevard, two cars.")
-      )
+        context("There's been a crash at Elgin Avenue and Vespucci Boulevard, two cars."),
+      ),
     ).toBe(true);
     expect(hasLocationEvidence(context("I need police at the 24-7 on Palomino Avenue."))).toBe(
-      true
+      true,
     );
   });
 
@@ -72,7 +72,7 @@ describe("whether a call has somewhere to send a unit", () => {
 
   test("the server's own derived location counts even if nobody said it", () => {
     expect(hasLocationEvidence(context("Please hurry.", { location: "Magellan Avenue" }))).toBe(
-      true
+      true,
     );
   });
 });
@@ -90,8 +90,10 @@ describe("what is NOT an address, because asking twice is the cheaper mistake", 
     // The exact turn the harness case `call-no-location` asserts on.
     expect(
       hasLocationEvidence(
-        context("He's been out there a couple of minutes, big guy, dark hoodie, something in hand.")
-      )
+        context(
+          "He's been out there a couple of minutes, big guy, dark hoodie, something in hand.",
+        ),
+      ),
     ).toBe(false);
   });
 

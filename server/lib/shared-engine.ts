@@ -19,7 +19,6 @@
 
 import { aiLog } from "./logger";
 
-
 interface TlibExports {
   InferenceAdvertise(payload: string): string;
   InferenceLookup(capability: string, workload: string): string;
@@ -71,7 +70,7 @@ export function advertiseEngine(
   capability: string,
   workload: string,
   url: string,
-  model: string
+  model: string,
 ): void {
   if (!workload) return;
   const registry = tlib();
@@ -79,7 +78,7 @@ export function advertiseEngine(
 
   try {
     const handle = registry.InferenceAdvertise(
-      JSON.stringify({ capability, workload, url, model })
+      JSON.stringify({ capability, workload, url, model }),
     );
     if (handle) aiLog.debug(`shared: advertised ${capability} (${workload}) at ${url}`);
   } catch {

@@ -49,7 +49,7 @@ function rootWith(contents: string | null, pinnedTo?: string): string {
           capability: "transcription",
         },
       ],
-    })
+    }),
   );
   return root;
 }
@@ -113,7 +113,7 @@ describe("verifying a model against its pin", () => {
             capability: "transcription",
           },
         ],
-      })
+      }),
     );
     const verdict = await verifyPinnedModel(root, path.join(root, DEST));
     expect(verdict.intact).toBe(true);
@@ -124,7 +124,7 @@ describe("refusing to guess", () => {
   test("no verdict for a path that is not pinned", async () => {
     const root = rootWith("x");
     expect(await verifyPinnedModel(root, path.join(root, "server/models/other.bin"))).toEqual(
-      UNCHECKED
+      UNCHECKED,
     );
   });
 

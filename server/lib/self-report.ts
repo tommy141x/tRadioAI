@@ -108,7 +108,10 @@ export function withoutOwnCallsign(about: string, callsign: string, unitId: stri
       at = end;
     }
     if (matched === wanted.length) {
-      const rest = about.slice(at).replace(/^[^a-z0-9-]+/i, "").trim();
+      const rest = about
+        .slice(at)
+        .replace(/^[^a-z0-9-]+/i, "")
+        .trim();
       // Never strip the whole thing away: `about` that is nothing but the callsign is a
       // label with no traffic in it, and the empty-`about` gate should see it as empty.
       if (rest) return rest;
@@ -126,7 +129,7 @@ export function withoutOwnCallsign(about: string, callsign: string, unitId: stri
 export function recordedSelfReport(
   decision: Pick<AiDecision, "actions" | "kind" | "about">,
   context: AiTurnContext,
-  tools: readonly AiTool[]
+  tools: readonly AiTool[],
 ): AiAction | null {
   // Only ever an addition. A turn the model acted on is a turn it understood, and
   // second-guessing its choice is a different and much riskier feature.
@@ -141,11 +144,7 @@ export function recordedSelfReport(
   // controls both land in those two.
   if ((decision.kind ?? "").trim().toLowerCase() !== "report") return null;
 
-  const about = withoutOwnCallsign(
-    (decision.about ?? "").trim(),
-    context.callsign,
-    context.unitId
-  );
+  const about = withoutOwnCallsign((decision.about ?? "").trim(), context.callsign, context.unitId);
   if (!about) return null;
 
   const tool = tools.find((candidate) => candidate.id === "unit_status");

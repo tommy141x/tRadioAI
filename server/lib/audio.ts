@@ -134,7 +134,7 @@ export function trimTrailingSilence(
   pcm: Int16Array,
   sampleRate: number,
   keepMs = 60,
-  threshold = 0.02
+  threshold = 0.02,
 ): Int16Array {
   if (pcm.length === 0 || sampleRate <= 0) return pcm;
 

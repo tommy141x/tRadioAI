@@ -2,19 +2,10 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  type PinnedAsset,
-  selectAssets,
-  totalBytes,
-} from "./assets/index.ts";
+import { type PinnedAsset, selectAssets, totalBytes } from "./assets/index.ts";
 import { localCapabilities, resolveProviders } from "./providers";
 import { readPins } from "./model-integrity";
-import {
-  DOWNLOAD_COMMAND,
-  missingAssets,
-  registerWeightsCommand,
-  weightsStatus,
-} from "./weights";
+import { DOWNLOAD_COMMAND, missingAssets, registerWeightsCommand, weightsStatus } from "./weights";
 
 const ROOT = join(import.meta.dir, "..", "..");
 
@@ -28,7 +19,9 @@ describe("localCapabilities", () => {
   });
 
   test("a hosted capability with a key drops out", () => {
-    const plan = resolveProviders({ text: { provider: "groq", model: "llama-3.3-70b", key: "sk-test" } });
+    const plan = resolveProviders({
+      text: { provider: "groq", model: "llama-3.3-70b", key: "sk-test" },
+    });
     expect(localCapabilities(plan)).not.toContain("text");
     expect(localCapabilities(plan).sort()).toEqual(["speech", "transcription"]);
   });
@@ -93,7 +86,9 @@ describe("the real lockfile", () => {
   });
 
   test("sending text to a hosted provider avoids 2.3 GB of the 2.5", () => {
-    const plan = resolveProviders({ text: { provider: "groq", model: "llama-3.3-70b", key: "sk-test" } });
+    const plan = resolveProviders({
+      text: { provider: "groq", model: "llama-3.3-70b", key: "sk-test" },
+    });
     const needed = selectAssets(pins, localCapabilities(plan));
     expect(needed.map((p) => p.id)).not.toContain("text");
     // 2.5 GB down to under 200 MB: the point of the whole feature.
@@ -223,7 +218,7 @@ describe("registerWeightsCommand", () => {
     (globalThis as Record<string, unknown>).RegisterCommand = (
       name: string,
       handler: () => void,
-      restricted: boolean
+      restricted: boolean,
     ) => {
       registered = { name, restricted, run: handler };
     };

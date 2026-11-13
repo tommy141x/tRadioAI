@@ -23,9 +23,19 @@ const BASE = {
 };
 
 const openai = (over = {}) =>
-  speechRequest({ provider: "openai", url: "https://api.openai.com/v1/audio/speech", ...BASE, ...over });
+  speechRequest({
+    provider: "openai",
+    url: "https://api.openai.com/v1/audio/speech",
+    ...BASE,
+    ...over,
+  });
 const eleven = (over = {}) =>
-  speechRequest({ provider: "elevenlabs", url: "https://api.elevenlabs.io/v1/text-to-speech", ...BASE, ...over });
+  speechRequest({
+    provider: "elevenlabs",
+    url: "https://api.elevenlabs.io/v1/text-to-speech",
+    ...BASE,
+    ...over,
+  });
 
 describe("the OpenAI shape is unchanged", () => {
   test("url is used as given, with a bearer and the pcm response format", () => {
@@ -49,7 +59,12 @@ describe("the OpenAI shape is unchanged", () => {
 
 describe("Groq asks for WAV, because it refuses anything else", () => {
   const groq = (over = {}) =>
-    speechRequest({ provider: "groq", url: "https://api.groq.com/openai/v1/audio/speech", ...BASE, ...over });
+    speechRequest({
+      provider: "groq",
+      url: "https://api.groq.com/openai/v1/audio/speech",
+      ...BASE,
+      ...over,
+    });
 
   // The operator report this exists for: transcription and decisions worked on
   // Groq while every line of speech came back
@@ -143,7 +158,11 @@ describe("edges that would otherwise be opaque HTTP errors", () => {
 
 describe("resolution treats it like any other provider", () => {
   test("it serves speech when a key is present", () => {
-    const r = resolveCapability("speech", { provider: "elevenlabs", model: "eleven_turbo_v2_5", hasKey: true });
+    const r = resolveCapability("speech", {
+      provider: "elevenlabs",
+      model: "eleven_turbo_v2_5",
+      hasKey: true,
+    });
     expect(r).toMatchObject({ provider: "elevenlabs", hosted: true, note: "" });
     expect(r.baseUrl).toBe("https://api.elevenlabs.io/v1");
   });

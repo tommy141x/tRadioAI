@@ -8,7 +8,7 @@ describe("reading a reply out of a decision that is still arriving", () => {
     expect(draftReply('{"reply": "King 41, copy')).toBe("");
     expect(draftReply('{"reply": "King 41, copy, out at Grove')).toBe("");
     expect(draftReply('{"reply": "King 41, copy, out at Grove."')).toBe(
-      "King 41, copy, out at Grove."
+      "King 41, copy, out at Grove.",
     );
   });
 
@@ -27,7 +27,7 @@ describe("reading a reply out of a decision that is still arriving", () => {
   test("a reply containing a quote is not cut short at it", () => {
     // Escaped quotes are why this cannot be a lastIndexOf on '"'.
     expect(draftReply('{"reply": "King 41, say again \\"out\\" please."}')).toBe(
-      'King 41, say again "out" please.'
+      'King 41, say again "out" please.',
     );
   });
 

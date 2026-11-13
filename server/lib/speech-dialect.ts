@@ -66,7 +66,7 @@ const ELEVENLABS_PCM_RATES = [8000, 16000, 22050, 24000, 44100] as const;
 
 function nearestElevenLabsRate(rate: number): number {
   return ELEVENLABS_PCM_RATES.reduce((best, candidate) =>
-    Math.abs(candidate - rate) < Math.abs(best - rate) ? candidate : best
+    Math.abs(candidate - rate) < Math.abs(best - rate) ? candidate : best,
   );
 }
 

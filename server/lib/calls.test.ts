@@ -124,7 +124,7 @@ describe("the answered-call registry", () => {
     expect(
       answeredCalls()
         .map((entry) => entry.callId)
-        .sort()
+        .sort(),
     ).toEqual(["call911_a", "call911_b"]);
 
     forgetCall("call911_a");

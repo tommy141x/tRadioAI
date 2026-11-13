@@ -38,7 +38,6 @@ import { resourceRoot } from "./local-engine";
 import type { Capability, ProviderPlan } from "./providers";
 import { localCapabilities } from "./providers";
 
-
 /**
  * Where the pins live.
  *
@@ -98,7 +97,7 @@ function summarise(outcome: AssetOutcome): void {
 export async function ensureWeights(
   root: string,
   plan: ProviderPlan,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<WeightsResult> {
   const local = localCapabilities(plan);
   const empty: WeightsResult = {
@@ -156,7 +155,7 @@ export async function ensureWeights(
       const percent = Math.floor((progress.received / progress.size) * 100);
       aiLog.info(
         `weights: ${progress.id} ${formatBytes(progress.received)} / ` +
-          `${formatBytes(progress.size)} (${percent}%)`
+          `${formatBytes(progress.size)} (${percent}%)`,
       );
     },
   });
@@ -165,10 +164,10 @@ export async function ensureWeights(
   // A capability is unavailable if ANY of its files failed — `speech` needs both
   // voices and both configs, so a partial success is still a broken capability.
   const failedIds = new Set(
-    report.outcomes.filter((o) => o.status === "failed").map((outcome) => outcome.id)
+    report.outcomes.filter((o) => o.status === "failed").map((outcome) => outcome.id),
   );
   const unavailable = local.filter((capability) =>
-    requested.some((asset) => asset.capability === capability && failedIds.has(asset.id))
+    requested.some((asset) => asset.capability === capability && failedIds.has(asset.id)),
   );
 
   return { ...report, requested, unavailable };
@@ -273,7 +272,7 @@ export function weightsStatus(): {
  */
 export async function missingAssets(
   root: string,
-  assets: readonly PinnedAsset[]
+  assets: readonly PinnedAsset[],
 ): Promise<PinnedAsset[]> {
   const missing: PinnedAsset[] = [];
   // Directory listings, not a probe per file, and the reason is the console
@@ -371,7 +370,7 @@ export function syncWeights(plan: ProviderPlan, root: string = resourceRoot()): 
       sync = { state: "degraded", key, unavailable: local, needed: [] };
       aiLog.error(
         `AI Dispatching is UNAVAILABLE — cannot read ${LOCKFILE}: ` +
-          `${error instanceof Error ? error.message : String(error)}`
+          `${error instanceof Error ? error.message : String(error)}`,
       );
       return;
     }
@@ -385,7 +384,7 @@ export function syncWeights(plan: ProviderPlan, root: string = resourceRoot()): 
       `AI Dispatching is waiting on model files: ${missing.length} artifact(s), ` +
         `${formatBytes(totalBytes(missing))}. Nothing has been downloaded. ` +
         `Start it from the admin panel under Settings -> AI Dispatcher, or run ` +
-        `'${DOWNLOAD_COMMAND}' here. The radio itself is unaffected.`
+        `'${DOWNLOAD_COMMAND}' here. The radio itself is unaffected.`,
     );
   })();
 }
@@ -417,7 +416,7 @@ export function startWeightsDownload(plan: ProviderPlan, root: string = resource
     aiLog.error(
       `AI Dispatching is UNAVAILABLE — the weights sync itself failed for: ` +
         `${local.join(", ")}. The radio itself is unaffected. ` +
-        `${error instanceof Error ? (error.stack ?? error.message) : String(error)}`
+        `${error instanceof Error ? (error.stack ?? error.message) : String(error)}`,
     );
   });
   return true;
@@ -429,7 +428,7 @@ async function run(
   root: string,
   local: Capability[],
   key: string,
-  controller: AbortController
+  controller: AbortController,
 ): Promise<void> {
   try {
     const pins = readPins(root);
@@ -462,7 +461,7 @@ async function run(
         `${engines.unavailable.join(", ")}. The radio itself is unaffected. ` +
         `Retry from the admin panel under Settings -> AI Dispatcher, or run ` +
         `'${DOWNLOAD_COMMAND}' here, or set a hosted provider for those ` +
-        `capabilities in the AI config.`
+        `capabilities in the AI config.`,
     );
     return;
   }
@@ -486,7 +485,7 @@ async function run(
       `${result.unavailable.join(", ")}. The radio itself is unaffected. ` +
       `Retry from the admin panel under Settings -> AI Dispatcher, or run ` +
       `'${DOWNLOAD_COMMAND}' here, or set a hosted provider for those ` +
-      `capabilities in the AI config.`
+      `capabilities in the AI config.`,
   );
 }
 
@@ -511,7 +510,7 @@ export function registerWeightsCommand(plan: () => ProviderPlan): void {
           `weights: already downloading` +
             (p
               ? ` — ${formatBytes(p.overallReceivedBytes)} / ${formatBytes(p.overallTotalBytes)}`
-              : "")
+              : ""),
         );
         return;
       }
@@ -526,17 +525,17 @@ export function registerWeightsCommand(plan: () => ProviderPlan): void {
         const total = weightsStatus().neededBytes;
         aiLog.info(
           `weights: starting download${total > 0 ? ` — ${formatBytes(total)}` : ""}. ` +
-            "The radio is usable throughout; progress follows here and in the admin panel."
+            "The radio is usable throughout; progress follows here and in the admin panel.",
         );
       } else {
         // Every capability hosted: there is nothing local to fetch. Say so rather
         // than printing "starting" and then never mentioning it again.
         aiLog.info(
-          "weights: nothing to download — every capability is served by a hosted provider"
+          "weights: nothing to download — every capability is served by a hosted provider",
         );
       }
     },
-    true
+    true,
   );
 }
 

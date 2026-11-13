@@ -80,7 +80,7 @@ describe("buildCallTakerPrompt", () => {
   test("an operator's instructions are layered under the rules, never over them", () => {
     const prompt = buildCallTakerPrompt(
       "Dispatch",
-      "Callers on the island get the harbour patrol."
+      "Callers on the island get the harbour patrol.",
     );
     expect(prompt).toContain("Callers on the island get the harbour patrol.");
     expect(prompt).toContain("Everything above them still holds");
@@ -102,7 +102,7 @@ describe("buildTurnPrompt on a call", () => {
     // the /911 text again several turns into a call that has moved past it.
     expect(prompt).toContain('They called about: "there is someone in my back yard"');
     expect(prompt).toContain(
-      'They just said: "he\'s still out there, i can see him from the window"'
+      'They just said: "he\'s still out there, i can see him from the window"',
     );
   });
 
@@ -118,7 +118,7 @@ describe("buildTurnPrompt on a call", () => {
   test("states that a location IS held once the caller has given one", () => {
     const prompt = buildTurnPrompt(
       { ...onCall, transcript: "I'm at 12 Magellan Avenue, behind the laundromat." },
-      [hangUp]
+      [hangUp],
     );
     expect(prompt).toContain("You already have somewhere to send a unit");
     expect(prompt).toContain("Do not ask where they are again");
@@ -144,7 +144,7 @@ describe("buildTurnPrompt on a call", () => {
           { who: "Dispatch", text: "Is anyone hurt?", own: true, at: 3 },
         ],
       },
-      [hangUp]
+      [hangUp],
     );
     expect(prompt).toContain('You have already said: "Is anyone hurt?"');
     expect(prompt).toContain("Say something else");
@@ -161,7 +161,7 @@ describe("buildTurnPrompt on a call", () => {
         ...onCall,
         history: [{ who: "Alex Vance", text: "someone is in my yard", own: false, at: 1 }],
       },
-      [hangUp]
+      [hangUp],
     );
     expect(prompt).not.toContain("You have already said");
   });
@@ -175,7 +175,7 @@ describe("buildTurnPrompt on a call", () => {
           { who: "Alex Vance", text: "someone is in my yard", own: false, at: 2 },
         ],
       },
-      [hangUp]
+      [hangUp],
     );
     expect(prompt).toContain("The call so far, oldest first:");
     expect(prompt).not.toContain("Recent traffic on this channel");

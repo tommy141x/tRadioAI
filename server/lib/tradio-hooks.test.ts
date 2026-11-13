@@ -131,9 +131,14 @@ describe("refusal", () => {
     stub.permitted = false;
     const warn = spyOn(aiLog, "warn").mockImplementation(() => {});
     try {
-      expect(tradio.openStation({ name: "Dispatch", frequencies: [1], answers911: false })).toBeNull();
+      expect(
+        tradio.openStation({ name: "Dispatch", frequencies: [1], answers911: false }),
+      ).toBeNull();
       expect(tradio.createPatch("A/B", [1, 2])).toEqual({ ok: false, reason: "not_permitted" });
-      expect(tradio.answer911("station-x", "call-1")).toEqual({ ok: false, reason: "not_permitted" });
+      expect(tradio.answer911("station-x", "call-1")).toEqual({
+        ok: false,
+        reason: "not_permitted",
+      });
       expect(warn.mock.calls.length).toBe(3);
     } finally {
       warn.mockRestore();
@@ -199,7 +204,14 @@ describe("hearing transmissions", () => {
     const id = stub.tapId();
     expect(() => stub.fire("tradio:tap:transmission", id, "not json")).not.toThrow();
     expect(() => stub.fire("tradio:tap:transmission", id, { serverId: "x" })).not.toThrow();
-    expect(() => stub.fire("tradio:tap:transmission", id, { serverId: 1, frequency: 1, container: "mp3", audio: "AA==" })).not.toThrow();
+    expect(() =>
+      stub.fire("tradio:tap:transmission", id, {
+        serverId: 1,
+        frequency: 1,
+        container: "mp3",
+        audio: "AA==",
+      }),
+    ).not.toThrow();
     expect(heard).toHaveLength(0);
   });
 
@@ -239,11 +251,19 @@ describe("hearing transmissions", () => {
 
 describe("speaking as a station", () => {
   test("a transmission is handed over as 8 kHz PCM and resolves when tRadio says it aired", async () => {
-    const station = tradio.openStation({ name: "Dispatch", frequencies: [154.755], answers911: false });
+    const station = tradio.openStation({
+      name: "Dispatch",
+      frequencies: [154.755],
+      answers911: false,
+    });
     expect(station).toBeTruthy();
 
     const pcm = new Int16Array(8000);
-    const sent = tradio.transmit(station as string, { frequency: 154.755, pcm, sampleRate: 8000, maxMs: 20000 }, 5000);
+    const sent = tradio.transmit(
+      station as string,
+      { frequency: 154.755, pcm, sampleRate: 8000, maxMs: 20000 },
+      5000,
+    );
     expect(sent.accepted).toBe(true);
     const result = await sent.done;
 
@@ -258,27 +278,59 @@ describe("speaking as a station", () => {
   });
 
   test("tRadio's reason for not airing is passed through", async () => {
-    const station = tradio.openStation({ name: "Dispatch", frequencies: [154.755], answers911: false }) as string;
+    const station = tradio.openStation({
+      name: "Dispatch",
+      frequencies: [154.755],
+      answers911: false,
+    }) as string;
     stub.transmitReason = "queue_full";
-    const result = await tradio.transmit(station, { frequency: 154.755, pcm: new Int16Array(80), sampleRate: 8000, maxMs: 1 }, 5000).done;
+    const result = await tradio.transmit(
+      station,
+      { frequency: 154.755, pcm: new Int16Array(80), sampleRate: 8000, maxMs: 1 },
+      5000,
+    ).done;
     expect(result.ok).toBe(false);
     expect(result.reason).toBe("queue_full");
   });
 
   test("transmitting on a channel the station does not cover is not_covered", async () => {
-    const station = tradio.openStation({ name: "Dispatch", frequencies: [154.755], answers911: false }) as string;
-    const result = await tradio.transmit(station, { frequency: 999, pcm: new Int16Array(80), sampleRate: 8000, maxMs: 1 }, 5000).done;
+    const station = tradio.openStation({
+      name: "Dispatch",
+      frequencies: [154.755],
+      answers911: false,
+    }) as string;
+    const result = await tradio.transmit(
+      station,
+      { frequency: 999, pcm: new Int16Array(80), sampleRate: 8000, maxMs: 1 },
+      5000,
+    ).done;
     expect(result.reason).toBe("not_covered");
   });
 
   test("a done event for another station or an unknown request is ignored", async () => {
     stub.autoFinish = false;
-    const station = tradio.openStation({ name: "Dispatch", frequencies: [1], answers911: false }) as string;
-    const sent = tradio.transmit(station, { frequency: 1, pcm: new Int16Array(80), sampleRate: 8000, maxMs: 1 }, 80);
+    const station = tradio.openStation({
+      name: "Dispatch",
+      frequencies: [1],
+      answers911: false,
+    }) as string;
+    const sent = tradio.transmit(
+      station,
+      { frequency: 1, pcm: new Int16Array(80), sampleRate: 8000, maxMs: 1 },
+      80,
+    );
     const requestId = stub.transmits[0]?.requestId as string;
 
-    stub.fire("tradio:station:done", "station-other", requestId, { ok: true, reason: "aired", airedMs: 10 });
-    stub.fire("tradio:station:done", station, "tx-unknown", { ok: true, reason: "aired", airedMs: 10 });
+    stub.fire("tradio:station:done", "station-other", requestId, {
+      ok: true,
+      reason: "aired",
+      airedMs: 10,
+    });
+    stub.fire("tradio:station:done", station, "tx-unknown", {
+      ok: true,
+      reason: "aired",
+      airedMs: 10,
+    });
 
     // Neither resolved it, so it falls through to the timeout.
     expect((await sent.done).reason).toBe("timeout");
@@ -286,27 +338,51 @@ describe("speaking as a station", () => {
 
   test("a done that never arrives times out instead of holding the turn", async () => {
     stub.autoFinish = false;
-    const station = tradio.openStation({ name: "Dispatch", frequencies: [1], answers911: false }) as string;
+    const station = tradio.openStation({
+      name: "Dispatch",
+      frequencies: [1],
+      answers911: false,
+    }) as string;
     const started = Date.now();
-    const result = await tradio.transmit(station, { frequency: 1, pcm: new Int16Array(80), sampleRate: 8000, maxMs: 1 }, 60).done;
+    const result = await tradio.transmit(
+      station,
+      { frequency: 1, pcm: new Int16Array(80), sampleRate: 8000, maxMs: 1 },
+      60,
+    ).done;
     expect(result).toMatchObject({ ok: false, reason: "timeout" });
     expect(Date.now() - started).toBeLessThan(1000);
   });
 
   test("losing tRadio releases waiting transmissions at once", async () => {
     stub.autoFinish = false;
-    const station = tradio.openStation({ name: "Dispatch", frequencies: [1], answers911: false }) as string;
-    const sent = tradio.transmit(station, { frequency: 1, pcm: new Int16Array(80), sampleRate: 8000, maxMs: 1 }, 60_000);
+    const station = tradio.openStation({
+      name: "Dispatch",
+      frequencies: [1],
+      answers911: false,
+    }) as string;
+    const sent = tradio.transmit(
+      station,
+      { frequency: 1, pcm: new Int16Array(80), sampleRate: 8000, maxMs: 1 },
+      60_000,
+    );
     tradio.lostTradio();
     expect((await sent.done).ok).toBe(false);
   });
 
   test("a refused transmission is not accepted", async () => {
-    const station = tradio.openStation({ name: "Dispatch", frequencies: [1], answers911: false }) as string;
+    const station = tradio.openStation({
+      name: "Dispatch",
+      frequencies: [1],
+      answers911: false,
+    }) as string;
     stub.permitted = false;
     const warn = spyOn(aiLog, "warn").mockImplementation(() => {});
     try {
-      const sent = tradio.transmit(station, { frequency: 1, pcm: new Int16Array(80), sampleRate: 8000, maxMs: 1 }, 5000);
+      const sent = tradio.transmit(
+        station,
+        { frequency: 1, pcm: new Int16Array(80), sampleRate: 8000, maxMs: 1 },
+        5000,
+      );
       expect(sent.accepted).toBe(false);
       expect((await sent.done).reason).toBe("refused");
     } finally {
@@ -318,7 +394,9 @@ describe("speaking as a station", () => {
 describe("stations view", () => {
   test("reads the human dispatchers and caches for a moment", () => {
     stub.humans = [{ serverId: -1001, selected: 154.755, listening: [460.25] }];
-    expect(tradio.stations(1000).humans).toEqual([{ serverId: -1001, selected: 154.755, listening: [460.25] }]);
+    expect(tradio.stations(1000).humans).toEqual([
+      { serverId: -1001, selected: 154.755, listening: [460.25] },
+    ]);
     stub.humans = [];
     // Within the cache window: the sweep and the turn do not each pay a round trip.
     expect(tradio.stations(1100).humans).toHaveLength(1);
@@ -339,7 +417,14 @@ describe("stations view", () => {
 });
 
 describe("911", () => {
-  const call = { id: "call911_a", callerServerId: 9, callerName: "Caller", message: "help", frequency: 880.0001, coords: { x: 1, y: 2, z: 3 } };
+  const call = {
+    id: "call911_a",
+    callerServerId: 9,
+    callerName: "Caller",
+    message: "help",
+    frequency: 880.0001,
+    coords: { x: 1, y: 2, z: 3 },
+  };
 
   test("a queued call arrives as a typed call", () => {
     const seen: tradio.Call911[] = [];
@@ -364,7 +449,11 @@ describe("911", () => {
   });
 
   test("answering passes tRadio's refusal reason through", () => {
-    const station = tradio.openStation({ name: "Dispatch", frequencies: [], answers911: true }) as string;
+    const station = tradio.openStation({
+      name: "Dispatch",
+      frequencies: [],
+      answers911: true,
+    }) as string;
     stub.queueCall(call);
     stub.answerRefusal = "caller_offline";
     expect(tradio.answer911(station, call.id)).toEqual({ ok: false, reason: "caller_offline" });
@@ -393,10 +482,21 @@ describe("CAD", () => {
   });
 
   test("an operation is answered with tRadio's reduced result", async () => {
-    stub.cadAnswers.set("sonoran.plate", { kind: "ok", ok: true, body: { plate: "ABC123", owner: "A. Vance" } });
+    stub.cadAnswers.set("sonoran.plate", {
+      kind: "ok",
+      ok: true,
+      body: { plate: "ABC123", owner: "A. Vance" },
+    });
     const result = await tradio.cadOperation("sonoran", "plate", { plate: "ABC123" });
-    expect(result).toEqual({ kind: "ok", ok: true, status: undefined, body: { plate: "ABC123", owner: "A. Vance" } });
-    expect(stub.cadRequests).toEqual([{ provider: "sonoran", op: "plate", params: { plate: "ABC123" } }]);
+    expect(result).toEqual({
+      kind: "ok",
+      ok: true,
+      status: undefined,
+      body: { plate: "ABC123", owner: "A. Vance" },
+    });
+    expect(stub.cadRequests).toEqual([
+      { provider: "sonoran", op: "plate", params: { plate: "ABC123" } },
+    ]);
   });
 
   test("a failure keeps its kind, because hold and negative are different things on the air", async () => {
@@ -435,9 +535,17 @@ describe("CAD", () => {
   });
 
   test("capabilities carry the operator's consent from tRadio", () => {
-    expect(tradio.cadCapabilities("sonoran")).toEqual({ provider: "sonoran", supports: ["plate", "createCall"], consent: true });
+    expect(tradio.cadCapabilities("sonoran")).toEqual({
+      provider: "sonoran",
+      supports: ["plate", "createCall"],
+      consent: true,
+    });
     stub.cadConsent = false;
-    expect(tradio.cadCapabilities("sonoran")).toEqual({ provider: "sonoran", supports: [], consent: false });
+    expect(tradio.cadCapabilities("sonoran")).toEqual({
+      provider: "sonoran",
+      supports: [],
+      consent: false,
+    });
   });
 
   test("an unknown result kind is an error, not a success", async () => {
@@ -490,16 +598,29 @@ describe("reading the radio system", () => {
     const made = tradio.createPatch("A/B", [1, 2]);
     expect(made.ok).toBe(true);
     expect(tradio.patches()).toHaveLength(1);
-    expect(tradio.createPatch("A/C", [2, 3])).toMatchObject({ ok: false, reason: "already_patched", frequency: 2, label: "A/B" });
+    expect(tradio.createPatch("A/C", [2, 3])).toMatchObject({
+      ok: false,
+      reason: "already_patched",
+      frequency: 2,
+      label: "A/B",
+    });
     stub.patchRefusals.set(9, "direct");
-    expect(tradio.createPatch("D/E", [9, 10])).toMatchObject({ ok: false, reason: "direct", frequency: 9 });
+    expect(tradio.createPatch("D/E", [9, 10])).toMatchObject({
+      ok: false,
+      reason: "direct",
+      frequency: 9,
+    });
     expect(tradio.removePatch((made as { id: string }).id)).toBe(true);
     expect(tradio.removePatch("patch-unknown")).toBe(false);
   });
 
   test("a table that arrives as an object, as Lua sends a sparse one, is still read", () => {
     const original = stub.occupancy.get(1);
-    stub.occupancy.set(1, { speakers: { 1: 7 } as unknown as number[], listeners: [], talking: [] });
+    stub.occupancy.set(1, {
+      speakers: { 1: 7 } as unknown as number[],
+      listeners: [],
+      talking: [],
+    });
     expect(tradio.usersOn(1).map((u) => u.serverId)).toEqual([7]);
     expect(original).toBeUndefined();
   });

@@ -40,7 +40,6 @@ import { activeCad } from "./cad";
 import { callFor, forgetCall, openCallCount } from "./cad-calls";
 import { type CadCapability, type CadPerson, type CadPlate, cadRefusal } from "./cad-types";
 
-
 /** The tool shape `builtins.ts` consumes. Structural, to avoid a circular import. */
 export interface CadTool {
   id: string;

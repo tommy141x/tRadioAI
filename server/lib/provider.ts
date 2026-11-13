@@ -36,7 +36,6 @@ import { createSseParser } from "./sse";
 import { speechRequest } from "./speech-dialect";
 import type { AiAction, AiDecision, AiProvider, AiTool, AudioClip, VoiceGender } from "./types";
 
-
 /** OpenAI's documented PCM rate. Overridden when the response is a WAV. */
 const SPEECH_PCM_RATE = 24000;
 
@@ -103,7 +102,7 @@ export function pcmFromResponse(bytes: Uint8Array): { pcm: Int16Array; sampleRat
         bytes[cursor]!,
         bytes[cursor + 1]!,
         bytes[cursor + 2]!,
-        bytes[cursor + 3]!
+        bytes[cursor + 3]!,
       );
       const size = view.getUint32(cursor + 4, true);
       if (id === "data") {
@@ -147,7 +146,7 @@ const MAX_ACTIONS = 3;
  */
 async function streamDecision(
   options: { url: string; headers: Record<string, string>; signal: AbortSignal; body: string },
-  onDraftReply: (reply: string) => void
+  onDraftReply: (reply: string) => void,
 ): Promise<string | null> {
   const parser = createSseParser();
   let content = "";
@@ -301,7 +300,7 @@ function chatContent(payload: unknown): string {
  */
 export function buildMultipart(
   clip: AudioClip,
-  fields: Record<string, string>
+  fields: Record<string, string>,
 ): { body: Uint8Array; contentType: string } {
   const boundary = `----tRadio${Math.random().toString(16).slice(2)}${Date.now().toString(16)}`;
   const encoder = new TextEncoder();
@@ -310,16 +309,16 @@ export function buildMultipart(
   for (const [name, value] of Object.entries(fields)) {
     pieces.push(
       encoder.encode(
-        `--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`
-      )
+        `--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`,
+      ),
     );
   }
   pieces.push(
     encoder.encode(
       `--${boundary}\r\n` +
         `Content-Disposition: form-data; name="file"; filename="${clip.filename}"\r\n` +
-        `Content-Type: ${clip.mime}\r\n\r\n`
-    )
+        `Content-Type: ${clip.mime}\r\n\r\n`,
+    ),
   );
   pieces.push(clip.bytes);
   pieces.push(encoder.encode(`\r\n--${boundary}--\r\n`));
@@ -598,7 +597,7 @@ export function createHttpProvider(): AiProvider {
       signal: AbortSignal,
       onDraftReply?: (reply: string) => void,
       onRaw?: (raw: string) => void,
-      framing: "radio" | "call" = "radio"
+      framing: "radio" | "call" = "radio",
     ): Promise<AiDecision> {
       const route = await endpoint("text", signal);
       const body = {
@@ -622,7 +621,7 @@ export function createHttpProvider(): AiProvider {
       if (onDraftReply) {
         const streamed = await streamDecision(
           { url: route.url, headers, signal, body: JSON.stringify({ ...body, stream: true }) },
-          onDraftReply
+          onDraftReply,
         );
         if (streamed !== null) {
           onRaw?.(streamed);
@@ -662,7 +661,7 @@ export function createHttpProvider(): AiProvider {
     async speak(
       text: string,
       gender: VoiceGender,
-      signal: AbortSignal
+      signal: AbortSignal,
     ): Promise<{ pcm: Int16Array; sampleRate: number }> {
       const voice = voiceFor(gender);
 

@@ -9,13 +9,13 @@ export interface AudienceView {
 export function hasAudience(
   frequencies: readonly number[],
   users: Iterable<AudienceView>,
-  isOwn: (serverId: number) => boolean
+  isOwn: (serverId: number) => boolean,
 ): boolean {
   for (const user of users) {
     if (isOwn(user.serverId)) continue;
     if (
       frequencies.some(
-        (frequency) => user.speakerChannel === frequency || user.listeningChannels.has(frequency)
+        (frequency) => user.speakerChannel === frequency || user.listeningChannels.has(frequency),
       )
     )
       return true;

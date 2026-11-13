@@ -16,7 +16,7 @@ declare function emit(eventName: string, ...args: unknown[]): void;
 declare function RegisterCommand(
   name: string,
   handler: (source: number, args: string[], raw: string) => void,
-  restricted: boolean
+  restricted: boolean,
 ): void;
 
 declare function IsDuplicityVersion(): boolean;

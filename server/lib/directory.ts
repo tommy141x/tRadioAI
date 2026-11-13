@@ -111,7 +111,7 @@ export function describeChannel(zone: string, name: string, frequency: number): 
  */
 export function resolveChannel(
   text: string,
-  entries: readonly ChannelEntry[]
+  entries: readonly ChannelEntry[],
 ): ChannelEntry | null {
   const wanted = normalise(text);
   if (!wanted) return null;

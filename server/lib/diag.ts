@@ -36,23 +36,27 @@ export function statusLines(): string[] {
     const yes = (flag: boolean) => (flag ? "yes" : "no");
     lines.push(
       `  hear ${yes(known.tap)}, speak ${yes(known.station)}, 911 ${yes(known.calls911)}, ` +
-        `alerts ${yes(known.alerts)}, patches ${yes(known.patches)}, CAD ${yes(known.cad)}`
+        `alerts ${yes(known.alerts)}, patches ${yes(known.patches)}, CAD ${yes(known.cad)}`,
     );
   }
 
   lines.push(
     `dispatcher: ${config.enabled ? "enabled" : "disabled"}, ` +
-      `${config.channels.length} channel(s), station ${stationId() ? "open" : "closed"}`
+      `${config.channels.length} channel(s), station ${stationId() ? "open" : "closed"}`,
   );
-  lines.push(`911: auto ${config.auto911 ? "on" : "off"}, answering ${config.answer911 ? "on" : "off"}`);
+  lines.push(
+    `911: auto ${config.auto911 ? "on" : "off"}, answering ${config.answer911 ? "on" : "off"}`,
+  );
   lines.push(`cad: ${activeCad()?.id ?? "none"}`);
 
   for (const line of describePlan(providerPlan())) lines.push(`  ${line}`);
   for (const provider of HOSTED) {
-    const used = CAPABILITIES.some((capability) => providerPlan()[capability].provider === provider);
+    const used = CAPABILITIES.some(
+      (capability) => providerPlan()[capability].provider === provider,
+    );
     lines.push(
       `  ${keyConvar(provider)}: ${GetConvar(keyConvar(provider), "") ? "set" : "not set"}` +
-        `${used ? "" : " (not used)"}`
+        `${used ? "" : " (not used)"}`,
     );
   }
 
@@ -67,7 +71,7 @@ export function registerDiagCommands(): void {
     () => {
       for (const line of statusLines()) aiLog.info(line);
     },
-    true
+    true,
   );
 
   RegisterCommand(
@@ -93,7 +97,7 @@ export function registerDiagCommands(): void {
         aiLog.warn(`${provider}: ${why}`);
       });
     },
-    true
+    true,
   );
 }
 

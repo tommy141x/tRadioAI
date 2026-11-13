@@ -78,7 +78,7 @@ async function sha256Of(filePath: string): Promise<string> {
  */
 export async function verifyPinnedModel(
   root: string,
-  modelPath: string
+  modelPath: string,
 ): Promise<IntegrityVerdict> {
   let pins: PinnedAsset[];
   try {

@@ -8,7 +8,6 @@
 
 import { aiLog } from "./logger";
 
-
 type LuaExports = Record<string, (...args: unknown[]) => unknown>;
 
 function luaExports(): LuaExports | null {

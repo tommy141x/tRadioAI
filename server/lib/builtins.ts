@@ -27,7 +27,6 @@ import { airReply } from "./speak";
 import * as tradio from "./tradio-hooks";
 import type { AiTool, AiTurnContext, ToolResult } from "./types";
 
-
 export interface BuiltinTool extends AiTool {
   /** False hides the tool this turn — nothing to patch, no alerts configured. */
   available: (context: AiTurnContext) => boolean;
@@ -206,8 +205,13 @@ const patchChannels: BuiltinTool = {
     if (!made.ok) {
       // tRadio is the authority on what can be patched, so a refusal it names is read
       // back as that channel's own reason rather than as a generic failure.
-      if (made.reason === "direct" || made.reason === "trunked" || made.reason === "already_patched") {
-        const entry = picked.find((candidate) => candidate.frequency === made.frequency) ?? picked[0];
+      if (
+        made.reason === "direct" ||
+        made.reason === "trunked" ||
+        made.reason === "already_patched"
+      ) {
+        const entry =
+          picked.find((candidate) => candidate.frequency === made.frequency) ?? picked[0];
         const name = entry ? channelName(entry) : "one of those channels";
         const why =
           made.reason === "already_patched"
@@ -241,7 +245,8 @@ const unpatchChannels: BuiltinTool = {
     const patch = byFrequency ?? byLabel;
     if (!patch) return { ok: false, message: `nothing is patched to "${wanted}"` };
 
-    if (!tradio.removePatch(patch.id)) return { ok: false, message: "the patch could not be removed" };
+    if (!tradio.removePatch(patch.id))
+      return { ok: false, message: "the patch could not be removed" };
     aiLog.info(`[audit] ai:patch removed ${patch.label}`);
 
     return { ok: true, message: `the ${patch.label} patch is down` };
@@ -286,7 +291,7 @@ const relayToChannel: BuiltinTool = {
       // system fault, while one composed against this says the true thing, which
       // is that nothing needed relaying.
       const unit = context.roster.find(
-        (candidate) => candidate.callsign && plainlySame(candidate.callsign, target)
+        (candidate) => candidate.callsign && plainlySame(candidate.callsign, target),
       );
       if (unit) {
         return {
@@ -307,7 +312,7 @@ const relayToChannel: BuiltinTool = {
       entry.frequency,
       rest,
       config.voiceGender,
-      AbortSignal.timeout(20_000)
+      AbortSignal.timeout(20_000),
     );
     if (!aired) return { ok: false, message: `${channelName(entry)} is busy` };
 
@@ -504,7 +509,7 @@ export function builtinTools(context: AiTurnContext): BuiltinTool[] {
       applies = tool.available(context);
     } catch (err) {
       aiLog.warn(
-        `builtins: ${tool.id} could not say whether it applies — ${(err as Error).message}`
+        `builtins: ${tool.id} could not say whether it applies — ${(err as Error).message}`,
       );
     }
     if (!applies) continue;

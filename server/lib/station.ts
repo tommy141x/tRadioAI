@@ -73,10 +73,15 @@ export function syncStation(wants: StationWants | null, now = Date.now()): void 
     return;
   }
   failedAt = 0;
-  current = { id, name: wants.name, frequencies: [...wants.frequencies], answers911: wants.answers911 };
+  current = {
+    id,
+    name: wants.name,
+    frequencies: [...wants.frequencies],
+    answers911: wants.answers911,
+  };
   aiLog.debug(
     `station: open as "${wants.name}" on ${wants.frequencies.length} channel(s)` +
-      `${wants.answers911 ? ", taking 911 calls" : ""}`
+      `${wants.answers911 ? ", taking 911 calls" : ""}`,
   );
 }
 
@@ -114,14 +119,18 @@ export async function transmitOn(
   pcm: Int16Array,
   sampleRate: number,
   signal: AbortSignal,
-  onAccepted?: () => void
+  onAccepted?: () => void,
 ): Promise<{ ok: boolean; reason: string }> {
   if (signal.aborted) return { ok: false, reason: "aborted" };
 
   let id = covers(frequency) ? (current?.id ?? null) : null;
   let transient: string | null = null;
   if (!id) {
-    transient = tradio.openStation({ name: "Dispatch", frequencies: [frequency], answers911: false });
+    transient = tradio.openStation({
+      name: "Dispatch",
+      frequencies: [frequency],
+      answers911: false,
+    });
     id = transient;
   }
   if (!id) return { ok: false, reason: "refused" };
@@ -137,7 +146,7 @@ export async function transmitOn(
     const sent = tradio.transmit(
       id,
       { frequency, pcm, sampleRate, maxMs: MAX_REPLY_MS },
-      durationMs + 60_000
+      durationMs + 60_000,
     );
     if (sent.accepted) onAccepted?.();
     const result = await Promise.race([sent.done, aborted]);

@@ -94,7 +94,7 @@ function normalize(text: string): string {
 export function mapSpokenStatus(
   spoken: string,
   vocabulary: readonly string[],
-  tenCodes: Record<string, string> = {}
+  tenCodes: Record<string, string> = {},
 ): string | null {
   const said = normalize(spoken);
   if (!said || vocabulary.length === 0) return null;

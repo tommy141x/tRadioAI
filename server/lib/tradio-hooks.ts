@@ -163,7 +163,10 @@ function tradioState(): Capabilities["state"] {
 }
 
 /** Which probes make up each capability. Every name is a real tRadio export. */
-const PROBES: Record<Exclude<keyof Capabilities, "state" | "missing">, Array<[string, unknown[]]>> = {
+const PROBES: Record<
+  Exclude<keyof Capabilities, "state" | "missing">,
+  Array<[string, unknown[]]>
+> = {
   read: [
     ["getAllChannels", []],
     ["getChannelInfo", ["0"]],
@@ -365,7 +368,8 @@ export function alertNames(): string[] {
   const out: string[] = [];
   for (const entry of list(outcome.value)) {
     const row = record(entry);
-    if (typeof row.name === "string" && row.name !== "" && row.toneOnly !== true) out.push(row.name);
+    if (typeof row.name === "string" && row.name !== "" && row.toneOnly !== true)
+      out.push(row.name);
   }
   return out;
 }
@@ -373,7 +377,9 @@ export function alertNames(): string[] {
 export function toneNames(): string[] {
   const outcome = call("getToneKeys");
   if (!outcome.ok) return [];
-  return list(outcome.value).filter((entry): entry is string => typeof entry === "string" && entry !== "");
+  return list(outcome.value).filter(
+    (entry): entry is string => typeof entry === "string" && entry !== "",
+  );
 }
 
 /** Raise (`name` set) or lift (`name` null) an alert. False when nothing matched. */
@@ -406,12 +412,17 @@ export function patches(): TradioPatch[] {
 }
 
 export type PatchRefusal =
-  | { ok: false; reason: "direct" | "trunked" | "already_patched"; frequency: number; label?: string }
+  | {
+      ok: false;
+      reason: "direct" | "trunked" | "already_patched";
+      frequency: number;
+      label?: string;
+    }
   | { ok: false; reason: "not_permitted" | "failed" };
 
 export function createPatch(
   label: string,
-  frequencies: number[]
+  frequencies: number[],
 ): { ok: true; id: string } | PatchRefusal {
   const outcome = call("createPatch", label, JSON.stringify(frequencies));
   if (!outcome.ok) return { ok: false, reason: "failed" };
@@ -527,7 +538,7 @@ const pendingTransmits = new Map<string, PendingTransmit>();
 export function transmit(
   stationId: string,
   options: { frequency: number; pcm: Int16Array; sampleRate: number; maxMs: number },
-  timeoutMs: number
+  timeoutMs: number,
 ): { accepted: boolean; done: Promise<TransmitResult> } {
   const audio = Buffer.from(options.pcm.buffer, options.pcm.byteOffset, options.pcm.byteLength);
   const outcome = call(
@@ -539,7 +550,7 @@ export function transmit(
       sampleRate: options.sampleRate,
       audio: audio.toString("base64"),
       maxMs: options.maxMs,
-    })
+    }),
   );
   const requestId = outcome.ok ? text(outcome.value) : "";
   if (requestId === "") {
@@ -596,7 +607,7 @@ let tapHandler: ((transmission: Transmission) => void) | null = null;
  */
 export function registerTap(
   frequencies: number[],
-  handler: (transmission: Transmission) => void
+  handler: (transmission: Transmission) => void,
 ): boolean {
   if (tapId) {
     call("unregisterTransmissionTap", tapId);
@@ -634,7 +645,7 @@ function onTapTransmission(id: unknown, payload: unknown): void {
   const sampleRate = Number(row.sampleRate) || STT_SAMPLE_RATE;
   if (container === "wav" && sampleRate !== STT_SAMPLE_RATE) {
     aiLog.warn(
-      `tRadio delivered a ${sampleRate} Hz WAV; ${STT_SAMPLE_RATE} Hz is the contract, so it was dropped`
+      `tRadio delivered a ${sampleRate} Hz WAV; ${STT_SAMPLE_RATE} Hz is the contract, so it was dropped`,
     );
     return;
   }
@@ -684,7 +695,7 @@ export function onCallQueued(handler: ((call: Call911) => void) | null): void {
  * only needs the event for the one call it answered, and it knows that caller.
  */
 export function onCallEnded(
-  handler: ((callerServerId: number, reason: Call911EndReason) => void) | null
+  handler: ((callerServerId: number, reason: Call911EndReason) => void) | null,
 ): void {
   endedHandler = handler;
 }
@@ -750,7 +761,9 @@ export function cadCapabilities(provider: string): CadCapabilities {
   const row = record(outcome.value);
   return {
     provider: text(row.provider) as CadProviderId | "",
-    supports: list(row.supports).filter((entry): entry is CadCapability => typeof entry === "string"),
+    supports: list(row.supports).filter(
+      (entry): entry is CadCapability => typeof entry === "string",
+    ),
     consent: row.consent === true,
   };
 }
@@ -789,7 +802,7 @@ export function cadOperation(
   provider: string,
   op: string,
   params: Record<string, unknown>,
-  timeoutMs = CAD_TIMEOUT_MS
+  timeoutMs = CAD_TIMEOUT_MS,
 ): Promise<CadResult> {
   const requestId = token("cad");
   const outcome = call("cadOperation", provider, op, JSON.stringify(params), requestId);
@@ -832,7 +845,8 @@ function onCadResult(requestId: unknown, payload: unknown): void {
     kind,
     ok: row.ok === true && kind === "ok",
     status: typeof row.status === "string" ? row.status : undefined,
-    body: row.body && typeof row.body === "object" ? (row.body as Record<string, unknown>) : undefined,
+    body:
+      row.body && typeof row.body === "object" ? (row.body as Record<string, unknown>) : undefined,
   });
 }
 
@@ -852,7 +866,7 @@ export function wireEvents(): void {
   wired = true;
   on("tradio:tap:transmission", (id, payload) => onTapTransmission(id, payload));
   on("tradio:station:done", (stationId, requestId, payload) =>
-    onStationDone(stationId, requestId, payload)
+    onStationDone(stationId, requestId, payload),
   );
   on("tradio:cad:operationResult", (requestId, payload) => onCadResult(requestId, payload));
   on("tradio:911:queued", (payload) => {

@@ -39,7 +39,14 @@ import {
  * Detection order when more than one CAD is running: the richest first, which is rarely
  * wrong and is still a guess — `cad` in `config.lua` is the way to say which.
  */
-const ORDER: readonly CadProviderId[] = ["lacore", "sonoran", "imperial", "wasabi", "tkmdt", "psmdt"];
+const ORDER: readonly CadProviderId[] = [
+  "lacore",
+  "sonoran",
+  "imperial",
+  "wasabi",
+  "tkmdt",
+  "psmdt",
+];
 
 export interface CadFacade {
   id: CadProviderId;
@@ -205,20 +212,23 @@ function choose(): CadFacade | null {
       announce(
         `auto:${provider}`,
         `cad: ${found.length} CADs running — using ${provider}, ignoring ${found.slice(1).join(", ")}. ` +
-          "Set `cad` in config.lua if that is the wrong one."
+          "Set `cad` in config.lua if that is the wrong one.",
       );
     }
   }
 
   const capabilities = cadCapabilities(provider);
   if (capabilities.provider === "") {
-    announce(`none:${provider}`, `cad: tRadio does not offer ${provider} to this resource — CAD tools are off`);
+    announce(
+      `none:${provider}`,
+      `cad: tRadio does not offer ${provider} to this resource — CAD tools are off`,
+    );
     return null;
   }
   if (!capabilities.consent) {
     announce(
       `consent:${provider}`,
-      "cad: tRadio's `Config.cad.tools` is off, so CAD tools are off here too"
+      "cad: tRadio's `Config.cad.tools` is off, so CAD tools are off here too",
     );
     return null;
   }

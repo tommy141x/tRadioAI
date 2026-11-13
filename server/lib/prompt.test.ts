@@ -118,7 +118,7 @@ describe("buildTurnPrompt", () => {
         trigger: "call_intake",
         call: { message: "someone is at my door" },
       } as unknown as AiTurnContext,
-      tools
+      tools,
     );
     expect(prompt).not.toContain("Check what they said against your tools");
   });
@@ -150,7 +150,7 @@ describe("buildTurnPrompt", () => {
           },
         ],
       },
-      tools
+      tools,
     );
     expect(prompt).toContain("Units on this channel:");
     expect(prompt).toContain("- 1-ADAM-12: ID A12, showing 10-8, right there, keyed up right now");
@@ -167,7 +167,7 @@ describe("buildTurnPrompt", () => {
         ],
         waiting: ["K32"],
       },
-      tools
+      tools,
     );
     expect(prompt).toContain("Recent traffic on this channel, oldest first:");
     expect(prompt).toContain('K31: "K31 to dispatch"');
@@ -194,7 +194,7 @@ describe("buildTurnPrompt", () => {
           service: "",
         },
       },
-      tools
+      tools,
     );
     expect(prompt).toContain("A call just came in from 911");
     expect(prompt).toContain("Caller: Jane Doe");
@@ -229,7 +229,7 @@ describe("buildTurnPrompt", () => {
           },
         ],
       },
-      tools
+      tools,
     );
     expect(prompt).toContain("The rest of the system:");
     expect(prompt).toContain("- Blaine County DISP: nobody on it, you do not cover this one");
@@ -257,7 +257,7 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain("A pursuit means SIGNAL 100 goes up.");
     expect(prompt).toContain("Everything above them still holds.");
     expect(prompt.indexOf("Never name a tool that is not on the list")).toBeLessThan(
-      prompt.indexOf("This server's own instructions:")
+      prompt.indexOf("This server's own instructions:"),
     );
   });
 
@@ -339,7 +339,7 @@ describe("the dispatcher's demeanor", () => {
     // Under the speaking rules it qualifies, not loose at the end of the prompt.
     expect(prompt.indexOf(DEMEANORS[key])).toBeGreaterThan(prompt.indexOf("Speaking:"));
     expect(prompt.indexOf(DEMEANORS[key])).toBeLessThan(
-      prompt.indexOf("How a transmission is built:")
+      prompt.indexOf("How a transmission is built:"),
     );
   });
 
@@ -379,7 +379,7 @@ describe("the dispatcher's demeanor", () => {
     for (const line of Object.values(DEMEANORS)) {
       expect(line).not.toContain('"');
       expect(echoesInstructions(line, buildSystemPrompt("Dispatch", "", {}, "brisk"))).toBe(
-        line === DEMEANORS.brisk
+        line === DEMEANORS.brisk,
       );
     }
   });
@@ -451,7 +451,7 @@ describe("addressesAnotherUnit", () => {
     // The dispatcher must still answer these — they are traffic *about* another
     // unit, directed at us.
     expect(addressesAnotherUnit("Show me out with King 22 on the traffic stop", others)).toBe(
-      false
+      false,
     );
     expect(addressesAnotherUnit("Can I get King 22 to my location?", others)).toBe(false);
   });
@@ -716,13 +716,13 @@ describe("a unit opening with its own callsign", () => {
   // appears in 0.45% of transmissions and a leading callsign in 12.6%.
   test("answers the way real units actually talk", () => {
     expect(opensWithOwnCallsign("42, I'm en route to the family problem.", "King 42", "K42")).toBe(
-      true
+      true,
     );
     expect(opensWithOwnCallsign("448, can you send in the description?", "King 448", "K448")).toBe(
-      true
+      true,
     );
     expect(
-      opensWithOwnCallsign("2534, can you show me en route to the Saratoga's ER?", "King 2534", "")
+      opensWithOwnCallsign("2534, can you show me en route to the Saratoga's ER?", "King 2534", ""),
     ).toBe(true);
   });
 
@@ -770,11 +770,11 @@ describe("handing a question back instead of answering it", () => {
     expect(
       echoesTheQuestion(
         "Dispatch, what's the weather looking like tonight?",
-        "Copy, 15, weather looking like tonight"
-      )
+        "Copy, 15, weather looking like tonight",
+      ),
     ).toBe(true);
     expect(echoesTheQuestion("Dispatch, you still there?", "copy, K15, you still there")).toBe(
-      true
+      true,
     );
   });
 
@@ -788,8 +788,8 @@ describe("handing a question back instead of answering it", () => {
     expect(
       echoesTheQuestion(
         "Dispatch, what's the status on that plate?",
-        "copy, K22, plate status unknown"
-      )
+        "copy, K22, plate status unknown",
+      ),
     ).toBe(false);
   });
 
@@ -798,13 +798,13 @@ describe("handing a question back instead of answering it", () => {
     // than off the echo: a right read-back is also almost entirely the unit's own
     // words, and suppressing those would break every status confirmation.
     expect(
-      echoesTheQuestion("show me out at the Vespucci station", "copy, 41, out at Vespucci station")
+      echoesTheQuestion("show me out at the Vespucci station", "copy, 41, out at Vespucci station"),
     ).toBe(false);
     expect(
       echoesTheQuestion(
         "Suspect's in a red hoodie, heading north on Grove Street.",
-        "copy, 30, red hoodie north on Grove"
-      )
+        "copy, 30, red hoodie north on Grove",
+      ),
     ).toBe(false);
   });
 
@@ -812,7 +812,7 @@ describe("handing a question back instead of answering it", () => {
     // Answering with information the unit did not supply is the good case and must
     // survive: little of it comes out of the question.
     expect(
-      echoesTheQuestion("Dispatch, can I get a second unit?", "King 22 is en route to you")
+      echoesTheQuestion("Dispatch, can I get a second unit?", "King 22 is en route to you"),
     ).toBe(false);
     expect(echoesTheQuestion("Dispatch, you still there?", "negative, K15")).toBe(false);
   });

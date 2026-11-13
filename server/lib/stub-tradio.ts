@@ -160,6 +160,50 @@ export class StubTradio {
     return `${prefix}-${crypto.randomUUID()}-${this.nextId}`;
   }
 
+  /**
+   * Forget the world and everything the addon did, but keep the event handlers.
+   *
+   * The dispatcher registers its event handlers once per module execution (FiveM keeps
+   * them across a superseded execution), so a suite that builds a new stub per case would
+   * leave every handler on the first stub's bus. One stub, reset between cases.
+   */
+  reset(): void {
+    this.channels = [];
+    this.occupancy.clear();
+    this.names.clear();
+    this.unitIds.clear();
+    this.alerts = [];
+    this.tones = [];
+    this.activeAlerts.clear();
+    this.patchList = [];
+    this.patchRefusals.clear();
+    this.humans = [];
+    this.calls.clear();
+    this.detected = {};
+    this.cadSupports = [];
+    this.cadConsent = true;
+    this.vocabulary = [];
+    this.cadAnswers.clear();
+    this.cadHold = false;
+    this.heldCad = [];
+    this.permitted = true;
+    this.autoFinish = true;
+    this.transmitReason = "aired";
+    this.answerRefusal = null;
+    this.callerOfflineFor = 0;
+    this.invocations = [];
+    this.stations.clear();
+    this.taps.clear();
+    this.transmits = [];
+    this.cadRequests = [];
+    this.ended911 = [];
+    this.answered911 = [];
+    this.missing.clear();
+    this.state = "started";
+    const g = globalThis as unknown as { exports?: Record<string, unknown> };
+    if (g.exports) g.exports.tRadio = this.bag();
+  }
+
   // ── the exports ──
 
   private bag(): Record<string, ExportFn> {
@@ -200,7 +244,11 @@ export class StubTradio {
       getChannelInfo: (frequency) => {
         const entry = this.occupancy.get(Number(frequency));
         if (!entry) return null;
-        return { speakers: entry.speakers, listeners: entry.listeners, activeTalkers: entry.talking };
+        return {
+          speakers: entry.speakers,
+          listeners: entry.listeners,
+          activeTalkers: entry.talking,
+        };
       },
       getPlayerName: (serverId) => this.names.get(Number(serverId)) ?? "",
       getSubscriberInfo: (serverId) => {
@@ -304,7 +352,8 @@ export class StubTradio {
         if (this.autoFinish) {
           queueMicrotask(() => {
             const covered =
-              station && (station.frequencies.includes(options.frequency) || this.answeredFreq(station));
+              station &&
+              (station.frequencies.includes(options.frequency) || this.answeredFreq(station));
             const reason = !station ? "no_station" : !covered ? "not_covered" : this.transmitReason;
             this.finishTransmit(String(stationId), requestId, reason, samples, options.sampleRate);
           });
@@ -341,7 +390,9 @@ export class StubTradio {
         this.ended911.push(String(callId));
         const call = this.calls.get(String(callId)) as StubCall;
         this.calls.delete(String(callId));
-        queueMicrotask(() => this.fire("tradio:911:ended", call.callerServerId, "integration_ended"));
+        queueMicrotask(() =>
+          this.fire("tradio:911:ended", call.callerServerId, "integration_ended"),
+        );
         return true;
       },
 
@@ -395,7 +446,7 @@ export class StubTradio {
     requestId: string,
     reason: string,
     samples = 0,
-    sampleRate = 8000
+    sampleRate = 8000,
   ): void {
     this.fire("tradio:station:done", stationId, requestId, {
       ok: reason === "aired",
@@ -427,7 +478,7 @@ export class StubTradio {
       audio?: Uint8Array;
       codec?: string;
     },
-    tapId = this.tapId()
+    tapId = this.tapId(),
   ): void {
     const audio = fields.audio ?? new Uint8Array([82, 73, 70, 70, 0, 0, 0, 0]);
     this.fire("tradio:tap:transmission", tapId, {
@@ -462,7 +513,7 @@ export class StubTradio {
   put(
     frequency: number,
     serverId: number,
-    options: { listening?: boolean; talking?: boolean; name?: string; unitId?: string } = {}
+    options: { listening?: boolean; talking?: boolean; name?: string; unitId?: string } = {},
   ): void {
     const entry = this.occupancy.get(frequency) ?? { speakers: [], listeners: [], talking: [] };
     (options.listening ? entry.listeners : entry.speakers).push(serverId);

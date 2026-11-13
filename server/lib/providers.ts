@@ -136,7 +136,7 @@ const PROFILES: Record<ProviderId, ProviderProfile> = {
  */
 export function providersServing(capability: Capability): ProviderId[] {
   return (Object.keys(PROFILES) as ProviderId[]).filter((id) =>
-    PROFILES[id].serves.includes(capability)
+    PROFILES[id].serves.includes(capability),
   );
 }
 
@@ -228,7 +228,7 @@ export function parseCapability(raw: unknown): CapabilityConfig {
 
 export function resolveCapability(
   capability: Capability,
-  config: CapabilityConfig | undefined
+  config: CapabilityConfig | undefined,
 ): ResolvedCapability {
   const wanted = config?.provider;
   if (!wanted || wanted === "local") return LOCAL;
@@ -240,19 +240,19 @@ export function resolveCapability(
   const profile = PROFILES[wanted];
   if (!profile.serves.includes(capability)) {
     return local(
-      `${wanted} does not serve ${capability} (it serves ${profile.serves.join(", ")}); using the local engine`
+      `${wanted} does not serve ${capability} (it serves ${profile.serves.join(", ")}); using the local engine`,
     );
   }
   if (profile.needsKey && config?.hasKey !== true) {
     return local(
-      `${wanted} needs an API key and none is set in ${keyConvar(wanted)}; using the local engine`
+      `${wanted} needs an API key and none is set in ${keyConvar(wanted)}; using the local engine`,
     );
   }
 
   if (profile.needsModel && !config?.model) {
     return local(
       `${wanted} needs a model for ${capability}; set providers.${capability}.model in config.lua ` +
-        `(\`tradioai_models ${wanted}\` lists them); using the local engine`
+        `(\`tradioai_models ${wanted}\` lists them); using the local engine`,
     );
   }
 

@@ -103,7 +103,7 @@ export function buildSystemPrompt(
   callsign: string,
   instructions = "",
   codeMeanings: Record<string, string> = {},
-  demeanor = ""
+  demeanor = "",
 ): string {
   const own = [
     `You are ${callsign}, a police radio dispatcher. You work a channel with units on it and you answer them over the radio.`,
@@ -242,7 +242,7 @@ export function buildSystemPrompt(
     own.push("", "This channel's codes:", codeLines.join("; "));
     own.push(
       "Those are what the codes mean here. A code you have not been given the meaning of is " +
-        "still something the unit said — read it back, never guess what it stands for."
+        "still something the unit said — read it back, never guess what it stands for.",
     );
     // How OFTEN to reach for one, which the sheet above does not imply and which a model
     // handed 24 codes gets wrong in the expensive direction: it starts talking in them.
@@ -263,7 +263,7 @@ export function buildSystemPrompt(
     own.push(
       "Codes are rare on a real channel. Most transmissions carry none and almost none carry " +
         "two, so use at most one, only where it is genuinely shorter than the plain words, and " +
-        "never to sound official."
+        "never to sound official.",
     );
   }
   const extra = instructions.trim().slice(0, MAX_INSTRUCTION_CHARS);
@@ -373,7 +373,7 @@ export function buildCallTakerPrompt(callsign: string, instructions = ""): strin
  * and the freshest copy is the one in the right place in the exchange.
  */
 export function collapseOwnRepeats(
-  history: readonly AiTurnContext["history"][number][]
+  history: readonly AiTurnContext["history"][number][],
 ): AiTurnContext["history"][number][] {
   const drop = new Set<number>();
   let previousOwn = -1;
@@ -397,7 +397,7 @@ export function buildTurnPrompt(context: AiTurnContext, tools: readonly AiTool[]
   lines.push(
     context.trigger === "call_intake"
       ? `On the phone with: ${context.callsign || context.call?.caller || "a caller"}`
-      : `Channel: ${context.channelName || context.frequency.toFixed(4)}`
+      : `Channel: ${context.channelName || context.frequency.toFixed(4)}`,
   );
 
   if (context.roster.length > 0) {
@@ -422,7 +422,7 @@ export function buildTurnPrompt(context: AiTurnContext, tools: readonly AiTool[]
     lines.push(
       context.trigger === "call_intake"
         ? "The call so far, oldest first:"
-        : "Recent traffic on this channel, oldest first:"
+        : "Recent traffic on this channel, oldest first:",
     );
     for (const entry of recent) {
       lines.push(`  ${entry.who}: "${truncate(entry.text, 200)}"`);
@@ -472,7 +472,7 @@ export function buildTurnPrompt(context: AiTurnContext, tools: readonly AiTool[]
       lines.push(
         tool.input
           ? `- ${tool.id}: ${tool.description} Input: ${tool.input}`
-          : `- ${tool.id}: ${tool.description} Takes no input.`
+          : `- ${tool.id}: ${tool.description} Takes no input.`,
       );
     }
   }
@@ -518,7 +518,7 @@ export function buildTurnPrompt(context: AiTurnContext, tools: readonly AiTool[]
       lines.push(
         `You already have somewhere to send a unit${where ? ` — ${where}` : ""}. Do not ask where they are again, ` +
           "and do not read the address back to check it. Ask the one thing you most need to know now, " +
-          "or end the call if there is nothing left to learn."
+          "or end the call if there is nothing left to learn.",
       );
     } else {
       // Absolute, because the alternative is the failure that cannot be recovered
@@ -526,7 +526,7 @@ export function buildTurnPrompt(context: AiTurnContext, tools: readonly AiTool[]
       // call; the address does not.
       lines.push(
         "You do not have an address. Nothing else you learn on this call is worth much until you do, " +
-          "so your reply is one question asking where they are, and nothing else."
+          "so your reply is one question asking where they are, and nothing else.",
       );
     }
     // Last, because it is last that the model reads. Measured 2026-09-21 across
@@ -553,20 +553,20 @@ export function buildTurnPrompt(context: AiTurnContext, tools: readonly AiTool[]
       ...new Set(
         context.history
           .filter((entry) => entry.own && entry.text.trim())
-          .map((entry) => entry.text.trim())
+          .map((entry) => entry.text.trim()),
       ),
     ].slice(-4);
     if (askedAlready.length > 0) {
       lines.push("");
       lines.push(
         `You have already said: ${askedAlready.map((line) => `"${line}"`).join(" ")} ` +
-          "Saying any of them again spends a turn and answers nothing. Say something else."
+          "Saying any of them again spends a turn and answers nothing. Say something else.",
       );
     }
     lines.push("");
     lines.push(
       "Whatever you ask, it has to be something you do not already know. Repeating any of the above " +
-        "back to them to check it is not a question; they told you, and you have it written down."
+        "back to them to check it is not a question; they told you, and you have it written down.",
     );
   } else if (context.trigger === "call" && context.call) {
     const call = context.call;
@@ -586,11 +586,11 @@ export function buildTurnPrompt(context: AiTurnContext, tools: readonly AiTool[]
     lines.push(
       "Put it out on the air. Pick the nearest unit who is available, call them by callsign, " +
         "and give them the call. This is the right channel and your reply goes out on it, " +
-        "so there is nothing to relay and nothing to patch. The caller cannot hear this; the units can."
+        "so there is nothing to relay and nothing to patch. The caller cannot hear this; the units can.",
     );
   } else {
     lines.push(
-      `${context.callsign || `Unit ${context.serverId}`} just keyed up${context.unitId ? ` (ID ${context.unitId})` : ""}.`
+      `${context.callsign || `Unit ${context.serverId}`} just keyed up${context.unitId ? ` (ID ${context.unitId})` : ""}.`,
     );
     lines.push(`They said: "${truncate(context.transcript, MAX_TRANSCRIPT_CHARS)}"`);
     lines.push("");
@@ -674,7 +674,7 @@ export function buildTurnPrompt(context: AiTurnContext, tools: readonly AiTool[]
           // Trading the primary fix for one control case out of twenty-six is the wrong
           // way round. The over-reach is real and is filed as its own work; it does not
           // get to cost the fix for the configuration every server starts in.
-          "If none of them takes it, use none and answer in words."
+          "If none of them takes it, use none and answer in words.",
       );
     }
   }
@@ -702,7 +702,7 @@ export function buildOutcomePrompt(context: AiTurnContext, outcomes: readonly Ai
   for (const outcome of outcomes) {
     lines.push(
       `- ${outcome.tool}${outcome.input ? ` with "${outcome.input}"` : ""}: ` +
-        `${outcome.ok ? "succeeded" : "failed"} — ${outcome.message}`
+        `${outcome.ok ? "succeeded" : "failed"} — ${outcome.message}`,
     );
   }
   if (context.waiting.length > 0) {
@@ -719,7 +719,7 @@ export function buildOutcomePrompt(context: AiTurnContext, outcomes: readonly Ai
     lines.push(
       allFailed
         ? "Tell the caller in plain words that it did not go through. Do not tell them why in technical terms, and do not promise to try again."
-        : "Tell the caller what actually happened, in plain words and nothing they did not need. Say nothing that did not happen."
+        : "Tell the caller what actually happened, in plain words and nothing they did not need. Say nothing that did not happen.",
     );
   } else {
     // An announcement names the caller so the model knows what the traffic is
@@ -729,13 +729,13 @@ export function buildOutcomePrompt(context: AiTurnContext, outcomes: readonly Ai
     // the line above it is the thing that caused it.
     if (context.trigger === "call") {
       lines.push(
-        "The caller is not on this channel and cannot hear you. This goes to the units, not to them."
+        "The caller is not on this channel and cannot hear you. This goes to the units, not to them.",
       );
     }
     lines.push(
       allFailed
         ? "Say on the air in one short radio sentence that it did not go through, and why."
-        : "Put it on the air in one short radio sentence. Cover what actually happened and nothing that did not."
+        : "Put it on the air in one short radio sentence. Cover what actually happened and nothing that did not.",
     );
   }
   return lines.join("\n");
@@ -904,7 +904,7 @@ export function transcriptionBias(
   callsigns: readonly string[],
   channels: readonly string[] = [],
   places: readonly string[] = [],
-  codes: Record<string, string> = {}
+  codes: Record<string, string> = {},
 ): string {
   const clean = (entries: readonly string[], limit: number) =>
     entries
@@ -1185,7 +1185,7 @@ export function echoesTheQuestion(transcript: string, reply: string): boolean {
 export function opensWithOwnCallsign(
   transcript: string,
   callsign: string,
-  unitId: string
+  unitId: string,
 ): boolean {
   const words = radioWords(transcript).slice(0, 8);
   if (words.length === 0) return false;
@@ -1236,7 +1236,7 @@ export function opensWithOwnCallsign(
 export function unitNamedIn(
   reply: string,
   roster: readonly { serverId: number; callsign: string; unitId: string }[],
-  speakerId: number
+  speakerId: number,
 ): number | null {
   const words = radioWords(reply);
   if (words.length === 0) return null;
@@ -1368,7 +1368,7 @@ const TRAFFIC_SIGNAL = new Set([
 export function isTrafficSignal(
   transcript: string,
   wakePhrases: readonly string[],
-  names: readonly string[]
+  names: readonly string[],
 ): boolean {
   const words = radioWords(transcript);
   // Eight, matching `isBareCallUp`. "Dispatch, King 41 has traffic for you" is seven and
@@ -1410,7 +1410,7 @@ export function isTrafficSignal(
 export function isBareCallUp(
   transcript: string,
   wakePhrases: readonly string[],
-  names: readonly string[]
+  names: readonly string[],
 ): boolean {
   const words = radioWords(transcript);
   if (words.length === 0 || words.length > 8) return false;
@@ -1489,7 +1489,7 @@ function editDistance(a: string, b: string): number {
       current[j] = Math.min(
         (previous[j] as number) + 1,
         (current[j - 1] as number) + 1,
-        (previous[j - 1] as number) + (a[i - 1] === b[j - 1] ? 0 : 1)
+        (previous[j - 1] as number) + (a[i - 1] === b[j - 1] ? 0 : 1),
       );
     }
     previous = current;

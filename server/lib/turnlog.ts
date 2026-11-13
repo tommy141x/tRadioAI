@@ -28,7 +28,6 @@ import path from "node:path";
 import { aiLog } from "./logger";
 import type { AiOutcome, AiTurnContext } from "./types";
 
-
 /** Past this the file is rolled over once. Roughly a week of a busy channel. */
 const MAX_BYTES = 4 * 1024 * 1024;
 
@@ -117,7 +116,7 @@ export interface TurnJournal {
 export function startTurn(
   trigger: AiTurnContext["trigger"],
   frequency: number,
-  serverId: number
+  serverId: number,
 ): TurnJournal {
   return {
     at: Date.now(),
@@ -199,7 +198,7 @@ export function finishTurn(journal: TurnJournal): void {
 
   if (!journal.addressed && journal.trigger !== "call") {
     aiLog.info(
-      `turn: ${who} on ${where} said "${journal.heard}" — ${journal.skipped || "not answered"}`
+      `turn: ${who} on ${where} said "${journal.heard}" — ${journal.skipped || "not answered"}`,
     );
     append(journal);
     return;
@@ -211,9 +210,7 @@ export function finishTurn(journal: TurnJournal): void {
     journal.trigger === "call"
       ? `  call:    "${journal.heard}"`
       : `  heard:   "${journal.heard}"` +
-          (clip
-            ? `   (${secs(clip.ms)} of ${clip.encoding}, ${clip.bytes}B)`
-            : "")
+          (clip ? `   (${secs(clip.ms)} of ${clip.encoding}, ${clip.bytes}B)` : ""),
   );
   // Why this turn was answered at all. The single most useful line when the
   // dispatcher is answering things it should not be.
@@ -235,10 +232,10 @@ export function finishTurn(journal: TurnJournal): void {
             .map(
               (action) =>
                 `${action.tool}(${action.input})${action.ok ? "" : " FAILED"}` +
-                (action.message ? ` — ${action.message}` : "")
+                (action.message ? ` — ${action.message}` : ""),
             )
             .join(", ")
-    }`
+    }`,
   );
   for (const refused of journal.dropped) lines.push(`  refused: ${refused}`);
 
@@ -250,7 +247,7 @@ export function finishTurn(journal: TurnJournal): void {
   lines.push(
     `  ${stages}${stages ? "  " : ""}| ${start}, ${
       journal.airedMs ? `${secs(journal.airedMs)} aired, ` : ""
-    }total ${journal.ms}ms`
+    }total ${journal.ms}ms`,
   );
 
   if (journal.error) lines.push(`  error:   ${journal.error}`);

@@ -69,8 +69,8 @@ describe("recordedSelfReport", () => {
       recordedSelfReport(
         { actions: [], kind: "report", about: "traffic stop at Grove and Jefferson" },
         turn(SAID),
-        tools
-      )
+        tools,
+      ),
     ).toEqual({ tool: "unit_status", input: "traffic stop at Grove and Jefferson" });
   });
 
@@ -90,8 +90,9 @@ describe("recordedSelfReport", () => {
       "King 41 is out with two at the Pink Cage",
       "K41, out with two at the Pink Cage",
     ]) {
-      expect(recordedSelfReport({ actions: [], kind: "report", about }, turn(said), tools))
-        .not.toBeNull();
+      expect(
+        recordedSelfReport({ actions: [], kind: "report", about }, turn(said), tools),
+      ).not.toBeNull();
     }
   });
 
@@ -100,21 +101,21 @@ describe("recordedSelfReport", () => {
     // this is the second lock on the same door, and the one that would still hold if the
     // framing's vocabulary changed under it.
     expect(withoutOwnCallsign("King 22 still on that call", "King 41", "K41")).toBe(
-      "King 22 still on that call"
+      "King 22 still on that call",
     );
     expect(withoutOwnCallsign("out with King 41", "King 41", "K41")).toBe("out with King 41");
     // The discriminating one: a name in the MIDDLE with traffic after it. An
     // implementation that scanned ahead for the callsign instead of requiring it to lead
     // would return "at the station" here and the two assertions above would not notice.
     expect(withoutOwnCallsign("out with King 41 at the station", "King 41", "K41")).toBe(
-      "out with King 41 at the station"
+      "out with King 41 at the station",
     );
     // And a label that is nothing BUT the callsign is left alone, so the empty-`about`
     // gate sees it rather than being handed "".
     expect(withoutOwnCallsign("King 41", "King 41", "K41")).toBe("King 41");
     // The remainder keeps its real spelling, because it becomes the status on the panel.
     expect(withoutOwnCallsign("King 41 — out at the Pink Cage", "King 41", "K41")).toBe(
-      "out at the Pink Cage"
+      "out at the Pink Cage",
     );
   });
 
@@ -129,8 +130,8 @@ describe("recordedSelfReport", () => {
           about: "traffic stop at Grove and Jefferson",
         },
         turn(SAID),
-        EIGHT
-      )
+        EIGHT,
+      ),
     ).toBeNull();
   });
 
@@ -152,8 +153,8 @@ describe("recordedSelfReport", () => {
       recordedSelfReport(
         { actions: [], kind: "request", about: "King 22 still on that call" },
         turn("Dispatch, is King 22 still on that call?"),
-        tools
-      )
+        tools,
+      ),
     ).toBeNull();
   });
 
@@ -161,7 +162,7 @@ describe("recordedSelfReport", () => {
     const said = "King 41, be advised there's a lot of traffic on the bridge.";
     // As measured: call-up, about empty.
     expect(
-      recordedSelfReport({ actions: [], kind: "call-up", about: "" }, turn(said), tools)
+      recordedSelfReport({ actions: [], kind: "call-up", about: "" }, turn(said), tools),
     ).toBeNull();
     // And the shape that would be dangerous if the model ever labelled it a report —
     // held as its own assertion so the `kind` gate is the only thing standing between
@@ -170,8 +171,8 @@ describe("recordedSelfReport", () => {
       recordedSelfReport(
         { actions: [], kind: "report", about: "traffic on the bridge" },
         turn(said),
-        tools
-      )
+        tools,
+      ),
     ).not.toBeNull();
   });
 
@@ -182,8 +183,8 @@ describe("recordedSelfReport", () => {
       recordedSelfReport(
         { actions: [], kind: "report", about: "out at 5th and Rockford" },
         turn(SAID),
-        [UNIT_STATUS]
-      )
+        [UNIT_STATUS],
+      ),
     ).toBeNull();
   });
 
@@ -191,16 +192,16 @@ describe("recordedSelfReport", () => {
     expect(
       recordedSelfReport({ actions: [], kind: "report", about: "status" }, turn(SAID), [
         UNIT_STATUS,
-      ])
+      ]),
     ).toBeNull();
   });
 
   test("an empty label records nothing", () => {
     expect(
-      recordedSelfReport({ actions: [], kind: "report", about: "" }, turn(SAID), [UNIT_STATUS])
+      recordedSelfReport({ actions: [], kind: "report", about: "" }, turn(SAID), [UNIT_STATUS]),
     ).toBeNull();
     expect(
-      recordedSelfReport({ actions: [], kind: "report" }, turn(SAID), [UNIT_STATUS])
+      recordedSelfReport({ actions: [], kind: "report" }, turn(SAID), [UNIT_STATUS]),
     ).toBeNull();
   });
 
@@ -210,8 +211,8 @@ describe("recordedSelfReport", () => {
       recordedSelfReport(
         { actions: [], about: "traffic stop at Grove and Jefferson" },
         turn(SAID),
-        [UNIT_STATUS]
-      )
+        [UNIT_STATUS],
+      ),
     ).toBeNull();
   });
 
@@ -222,8 +223,8 @@ describe("recordedSelfReport", () => {
       recordedSelfReport(
         { actions: [], kind: "report", about: "traffic stop at Grove and Jefferson" },
         turn(SAID),
-        [RUN_PLATE, ASSIGN_UNIT]
-      )
+        [RUN_PLATE, ASSIGN_UNIT],
+      ),
     ).toBeNull();
   });
 
@@ -246,8 +247,8 @@ describe("recordedSelfReport", () => {
       recordedSelfReport(
         { actions: [], kind: "report", about: "traffic stop at Grove and Jefferson" },
         turn(SAID, { trigger } as Partial<AiTurnContext>),
-        [UNIT_STATUS]
-      )
+        [UNIT_STATUS],
+      ),
     ).toBeNull();
   });
 });
