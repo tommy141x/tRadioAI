@@ -52,6 +52,23 @@ local function section(value)
     return type(value) == 'table' and value or {}
 end
 
+-- Only the fields the bundle reads. A `key` the operator typed here anyway is dropped,
+-- so a credential never travels in an event payload (see checkKeysNotInConfig).
+local function providers()
+    local out = {}
+    if type(Config.providers) ~= 'table' then return out end
+    for capability, entry in pairs(Config.providers) do
+        if type(entry) == 'table' then
+            out[capability] = {
+                provider = entry.provider,
+                model = entry.model,
+                baseUrl = entry.baseUrl,
+            }
+        end
+    end
+    return out
+end
+
 local function payload()
     return {
         enabled = Config.enabled == true,
@@ -75,7 +92,7 @@ local function payload()
         turnTimeoutMs = tonumber(Config.turnTimeoutMs),
         turnCooldownMs = tonumber(Config.turnCooldownMs),
         hostedCallsPerMinute = tonumber(Config.hostedCallsPerMinute),
-        providers = section(Config.providers),
+        providers = providers(),
         provider = { voices = section(Config.voices) },
         localEngine = section(Config.localEngine),
     }

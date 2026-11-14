@@ -1,0 +1,15 @@
+-- Negative control for the SPECIFIC hazard run-lua-suite.lua exists for.
+--
+-- MEASURED: fengari's CLI prints an unhandled Lua error and still exits ZERO.
+-- Reproduce the raw behaviour with
+--     bunx --bun fengari scripts/controls/lua-throws.lua
+-- which prints the error and exits 0, against
+--     bunx --bun fengari scripts/run-lua-suite.lua scripts/controls/lua-throws.lua
+-- which exits 1. The difference between those two commands is the entire reason
+-- the shim is not optional.
+--
+-- An error on the FIRST statement, not an assertion, because that is the shape
+-- that is dangerous: a suite that cannot even load has run zero of its own
+-- assertions, and a runner that reports it as a pass is reporting a suite that
+-- never ran.
+error('the Lua gate control: raised before any assertion ran', 0)

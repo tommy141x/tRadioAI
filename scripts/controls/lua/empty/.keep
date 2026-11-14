@@ -1,0 +1,3 @@
+This directory is empty ON PURPOSE: scripts/test-lua.ts's LUA_CONTROL run points
+discovery at it and requires 0 suites, which is what a renamed or moved
+scripts/tests looks like. A .lua file here makes that guard stop measuring.
