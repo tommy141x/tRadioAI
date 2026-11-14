@@ -614,6 +614,36 @@ describe("reading the radio system", () => {
     expect(tradio.removePatch("patch-unknown")).toBe(false);
   });
 
+  test("patches: the reasons tRadio adds beyond the channel rules are read, not flattened to failed", () => {
+    stub.patchingDisabled = true;
+    expect(tradio.createPatch("A/B", [1, 2])).toEqual({ ok: false, reason: "disabled" });
+    stub.patchingDisabled = false;
+    stub.channels = [{ frequency: 1 } as never];
+    expect(tradio.createPatch("A/B", [1, 2])).toEqual({ ok: false, reason: "unknown_channel" });
+  });
+
+  test("a clip outside tRadio's limits is not sent and does not print the permission line", () => {
+    const warn = spyOn(aiLog, "warn").mockImplementation(() => {});
+    const station = tradio.openStation({ name: "Dispatch", frequencies: [1], answers911: false });
+    const sent = tradio.transmit(
+      station as string,
+      { frequency: 1, pcm: new Int16Array(8), sampleRate: 96000, maxMs: 20000 },
+      5000,
+    );
+    expect(sent.accepted).toBe(false);
+    expect(stub.called("stationTransmit")).toHaveLength(0);
+    expect(warn.mock.calls.flat().join(" ")).not.toContain("integrations");
+    warn.mockRestore();
+  });
+
+  test("an unlisted caller's cadCapabilities with no tools", () => {
+    stub.detected = { lacore: {} };
+    stub.cadSupports = ["createCall"];
+    stub.permitted = false;
+    const reply = tradio.cadCapabilities("lacore");
+    expect(reply.supports).toEqual([]);
+  });
+
   test("a table that arrives as an object, as Lua sends a sparse one, is still read", () => {
     const original = stub.occupancy.get(1);
     stub.occupancy.set(1, {

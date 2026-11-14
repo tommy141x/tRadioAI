@@ -91,7 +91,15 @@ export class StubTradio {
   /** Fire `tradio:station:done` straight after `stationTransmit`. */
   autoFinish = true;
   /** Reason `stationTransmit` reports when it finishes. */
-  transmitReason: "aired" | "queue_full" | "too_long" | "no_station" | "not_covered" = "aired";
+  transmitReason:
+    | "aired"
+    | "queue_full"
+    | "too_long"
+    | "no_station"
+    | "not_covered"
+    | "encode_failed" = "aired";
+  /** tRadio answers `createPatch` with `disabled` while Channel Patching is off. */
+  patchingDisabled = false;
   /** Reason `answer911` refuses with, while set. */
   answerRefusal: string | null = null;
   /** Number of `answer911` calls that answer `caller_offline` before one succeeds. */
@@ -279,7 +287,12 @@ export class StubTradio {
       getPatches: () => JSON.stringify(this.patchList),
       createPatch: (label, frequenciesJson) => {
         if (!this.permitted) return JSON.stringify({ ok: false, reason: "not_permitted" });
+        if (this.patchingDisabled) return JSON.stringify({ ok: false, reason: "disabled" });
         const frequencies = JSON.parse(String(frequenciesJson)) as number[];
+        const known = this.channels.map((channel) => channel.frequency);
+        if (known.length > 0 && frequencies.some((frequency) => !known.includes(frequency))) {
+          return JSON.stringify({ ok: false, reason: "unknown_channel" });
+        }
         if (frequencies.length < 2) return JSON.stringify({ ok: false, reason: "too_few" });
         for (const frequency of frequencies) {
           const refusal = this.patchRefusals.get(frequency);
@@ -317,6 +330,8 @@ export class StubTradio {
       // ── H3 ──
       openStation: (optsJson) => {
         if (!this.permitted) return "";
+        // tRadio: eight stations per resource.
+        if (this.stations.size >= 8) return "";
         const options = JSON.parse(String(optsJson)) as Partial<StubStation>;
         const id = this.token("station");
         this.stations.set(id, {
@@ -337,6 +352,16 @@ export class StubTradio {
           audio: string;
           maxMs: number;
         };
+        // tRadio answers "" (the same as a refusal) for an unusable request.
+        if (
+          options.container !== "pcm16" ||
+          options.sampleRate < 4000 ||
+          options.sampleRate > 48000 ||
+          options.audio === "" ||
+          options.audio.length > 2_700_000
+        ) {
+          return "";
+        }
         const requestId = this.token("tx");
         const station = this.stations.get(String(stationId));
         const samples = Buffer.from(options.audio, "base64").length / 2;
@@ -376,6 +401,9 @@ export class StubTradio {
         const call = this.calls.get(String(callId));
         if (!station) return JSON.stringify({ ok: false, reason: "no_station" });
         if (!call) return JSON.stringify({ ok: false, reason: "unknown_call" });
+        if (this.answered911.some((entry) => entry.callId === String(callId))) {
+          return JSON.stringify({ ok: false, reason: "already_handled" });
+        }
         if (this.answerRefusal) return JSON.stringify({ ok: false, reason: this.answerRefusal });
         if (this.callerOfflineFor > 0) {
           this.callerOfflineFor -= 1;
@@ -405,7 +433,8 @@ export class StubTradio {
         }
         return JSON.stringify({
           provider: chosen,
-          supports: this.cadConsent ? this.cadSupports : [],
+          // tRadio: an unlisted caller sees no tools, with no refusal line.
+          supports: this.permitted && this.cadConsent ? this.cadSupports : [],
           consent: this.cadConsent,
         });
       },
@@ -489,7 +518,8 @@ export class StubTradio {
       endedAt: Date.now(),
       codec: fields.codec ?? "imbe",
       container: fields.container ?? "wav",
-      sampleRate: fields.sampleRate ?? 16000,
+      // tRadio reports a webm clip as 48000 whatever it was encoded from.
+      sampleRate: fields.sampleRate ?? (fields.container === "webm" ? 48000 : 16000),
       audio: Buffer.from(audio).toString("base64"),
     });
   }

@@ -418,7 +418,7 @@ export type PatchRefusal =
       frequency: number;
       label?: string;
     }
-  | { ok: false; reason: "not_permitted" | "failed" };
+  | { ok: false; reason: "not_permitted" | "disabled" | "unknown_channel" | "failed" };
 
 export function createPatch(
   label: string,
@@ -441,6 +441,7 @@ export function createPatch(
     aiLog.warn(refusalLine("createPatch"));
     return { ok: false, reason };
   }
+  if (reason === "disabled" || reason === "unknown_channel") return { ok: false, reason };
   return { ok: false, reason: "failed" };
 }
 
@@ -512,7 +513,22 @@ export function closeStation(stationId: string): boolean {
   return outcome.ok && outcome.value === true;
 }
 
-export type StationReason = "aired" | "queue_full" | "too_long" | "no_station" | "not_covered";
+export type StationReason =
+  | "aired"
+  | "queue_full"
+  | "too_long"
+  | "no_station"
+  | "not_covered"
+  | "encode_failed";
+
+/**
+ * tRadio's limits on one `stationTransmit` payload. It answers `""` for anything outside
+ * them, the same `""` it answers an unlisted resource with, so they are checked here and
+ * the operator is not told to edit `Config.integrations` over an oversize clip.
+ */
+const TRANSMIT_RATE_MIN = 4000;
+const TRANSMIT_RATE_MAX = 48000;
+const TRANSMIT_BASE64_MAX = 2_700_000;
 
 export interface TransmitResult {
   ok: boolean;
@@ -541,6 +557,18 @@ export function transmit(
   timeoutMs: number,
 ): { accepted: boolean; done: Promise<TransmitResult> } {
   const audio = Buffer.from(options.pcm.buffer, options.pcm.byteOffset, options.pcm.byteLength);
+  const encoded = audio.toString("base64");
+  if (
+    encoded === "" ||
+    encoded.length > TRANSMIT_BASE64_MAX ||
+    options.sampleRate < TRANSMIT_RATE_MIN ||
+    options.sampleRate > TRANSMIT_RATE_MAX
+  ) {
+    aiLog.warn(
+      `stationTransmit: ${audio.byteLength} bytes at ${options.sampleRate} Hz is outside what tRadio accepts, not sent`,
+    );
+    return { accepted: false, done: Promise.resolve({ ok: false, reason: "refused", airedMs: 0 }) };
+  }
   const outcome = call(
     "stationTransmit",
     stationId,
@@ -548,7 +576,7 @@ export function transmit(
       frequency: options.frequency,
       container: "pcm16",
       sampleRate: options.sampleRate,
-      audio: audio.toString("base64"),
+      audio: encoded,
       maxMs: options.maxMs,
     }),
   );

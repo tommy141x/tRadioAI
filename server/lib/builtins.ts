@@ -219,6 +219,12 @@ const patchChannels: BuiltinTool = {
             : `is a ${made.reason} channel and cannot be patched`;
         return { ok: false, message: `${name} ${why}` };
       }
+      if (made.reason === "disabled") {
+        return { ok: false, message: "channel patching is switched off in tRadio" };
+      }
+      if (made.reason === "unknown_channel") {
+        return { ok: false, message: "one of those channels is not in tRadio" };
+      }
       return { ok: false, message: "the patch could not be made" };
     }
     aiLog.info(`[audit] ai:patch created ${label} [${frequencies.join(", ")}]`);
