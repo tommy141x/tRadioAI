@@ -22,7 +22,7 @@ function cleanTree(): string {
   write(
     root,
     "fxmanifest.lua",
-    "fx_version 'cerulean'\nserver_scripts {\n    'config/config.lua',\n    'server/dist/bundle.js',\n}\n"
+    "fx_version 'cerulean'\nserver_scripts {\n    'config/config.lua',\n    'server/dist/bundle.js',\n}\n",
   );
   write(root, "config/config.lua", "Config = {}\n");
   write(root, "server/dist/bundle.js", "// bundle\n");
@@ -31,14 +31,31 @@ function cleanTree(): string {
 
 const cases: Array<[string, (root: string) => void, RegExp]> = [
   ["a model weight", (r) => write(r, "server/models/model.gguf", "x"), /\.gguf/],
-  ["an engine binary", (r) => write(r, "server/bin/win/llama/llama-server.exe", "x"), /\.exe|"bin"/],
+  [
+    "an engine binary",
+    (r) => write(r, "server/bin/win/llama/llama-server.exe", "x"),
+    /\.exe|"bin"/,
+  ],
   ["a downloaded archive", (r) => write(r, "server/.cache/llama.zip", "x"), /\.zip|\.cache/],
-  ["an OpenAI-style key", (r) => write(r, "config/notes.md", "key sk-abcdefghijklmnopqrstuvwxyz0123"), /OpenAI/],
+  [
+    "an OpenAI-style key",
+    (r) => write(r, "config/notes.md", "key sk-abcdefghijklmnopqrstuvwxyz0123"),
+    /OpenAI/,
+  ],
   ["a Groq key", (r) => write(r, "config/notes.md", "gsk_abcdefghijklmnopqrstuvwxyz0123"), /Groq/],
-  ["an escrow line", (r) => write(r, "fxmanifest.lua", "escrow_ignore {}\n'config/config.lua'\n"), /escrow/],
+  [
+    "an escrow line",
+    (r) => write(r, "fxmanifest.lua", "escrow_ignore {}\n'config/config.lua'\n"),
+    /escrow/,
+  ],
   [
     "a manifest entry that is not staged",
-    (r) => write(r, "fxmanifest.lua", "server_scripts {\n    'server/sv_missing.lua',\n    'server/dist/bundle.js',\n}\n"),
+    (r) =>
+      write(
+        r,
+        "fxmanifest.lua",
+        "server_scripts {\n    'server/sv_missing.lua',\n    'server/dist/bundle.js',\n}\n",
+      ),
     /sv_missing/,
   ],
   ["an empty bundle", (r) => write(r, "server/dist/bundle.js", ""), /bundle\.js/],

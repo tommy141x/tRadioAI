@@ -396,7 +396,7 @@ const addNote: CadTool = {
  * Write the unit's status into the CAD as well as into tRadio.
  *
  * A **separate tool from `unit_status`**, not a replacement, and the separation is
- * deliberate. tRadio's own `unit_status` always exists and is the authority on what
+ * deliberate. `unit_status` (sv_tools.lua) always exists and is the authority on what
  * a unit is doing; this one mirrors it into a CAD, and only one of the four systems
  * surveyed can do it at all. Folding them together would mean a radio status that
  * silently failed to record whenever the CAD was the wrong one, and a tool whose
@@ -422,7 +422,7 @@ const cadStatus: CadTool = {
     if (!result.ok) {
       // `absent` here most often means the status could not be mapped onto anything
       // the CAD accepts — which is a refusal to guess, not a fault. The dispatcher
-      // says so plainly and tRadio's own status is unaffected.
+      // says so plainly and the unit's status here is unaffected.
       return { ok: false, message: cadRefusal(result) };
     }
     return { ok: true, message: `${nameOf(context, context.serverId)} updated on the system` };

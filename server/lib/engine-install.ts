@@ -174,13 +174,13 @@ export function explainFetchFailure(archive: PinnedArchive, error: Error): strin
   if (/\b404\b|not found/i.test(error.message)) {
     return (
       `${base}\n  That is upstream having removed this build. It is not a problem with your ` +
-      "server, and re-running will not fix it — the pin has to be updated in a tRadio " +
-      "release. Until then, set a hosted provider for this capability in the admin panel."
+      "server, and re-running will not fix it — the pin has to be updated in a tRadioAI " +
+      "release. Until then, set a hosted provider for this capability in config.lua."
     );
   }
   return (
     `${base}\n  Your server could not reach the file. Check outbound HTTPS to github.com, ` +
-    "or set a hosted provider for this capability in the admin panel and nothing needs to " +
+    "or set a hosted provider for this capability in config.lua and nothing needs to " +
     "be downloaded at all."
   );
 }

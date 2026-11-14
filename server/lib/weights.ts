@@ -13,7 +13,7 @@
  * back onto weights that are not there — trading a clear "AI dispatching is
  * unavailable" for an engine that fails to load at the first transmission.
  *
- * Nothing here blocks the radio. Channels, trunking, 3D audio and the panel come
+ * Nothing here blocks the radio. Channels, trunking and 3D audio come
  * up regardless; only AI Dispatching waits on this.
  */
 import { existsSync } from "node:fs";
@@ -34,7 +34,7 @@ import {
 import { aiLog } from "./logger";
 import { archivesFor, ensureEngines, isInstalled, readArchives } from "./engine-install";
 import { LOCKFILE, readPins } from "./model-integrity";
-import { resourceRoot } from "./local-engine";
+import { localRoot } from "./local-engine";
 import type { Capability, ProviderPlan } from "./providers";
 import { localCapabilities } from "./providers";
 
@@ -124,7 +124,7 @@ export async function ensureWeights(
   if (requested.length === 0) return empty;
 
   let lastLog = 0;
-  // Bytes finished BEFORE the file currently in flight, so the panel can show one
+  // Bytes finished BEFORE the file currently in flight, so a status line can show one
   // bar for the whole run rather than a bar that restarts on every artifact.
   let completedBytes = 0;
   const overallTotalBytes = totalBytes(requested);
@@ -229,10 +229,10 @@ export function weightsState(): { state: WeightsState; unavailable: Capability[]
 }
 
 /**
- * Everything the admin panel needs to explain this subsystem in one screen.
+ * Everything a status display needs to explain this subsystem in one screen.
  *
  * Shaped for display rather than for logic: sizes are pre-totalled and the asset
- * list carries its capability, because the panel shows "Decision model — 2.4 GB"
+ * list carries its capability, because a display shows "Decision model — 2.4 GB"
  * and should not have to join two tables to do it.
  */
 export function weightsStatus(): {
@@ -324,7 +324,7 @@ export async function missingAssets(
  * Work out what this plan needs — and do NOT fetch it.
  *
  * Keyed on the resolved local capability set, so re-applying the same
- * configuration -- which the admin panel does on every save -- does not restart
+ * configuration does not restart
  * a 2.4 GB download. A plan that newly needs something aborts the previous run
  * rather than racing it: two writers on one `.part` produce a file that passes
  * neither length nor hash.
@@ -332,13 +332,13 @@ export async function missingAssets(
  * This used to start the download itself. It no longer does: it resolves to
  * `ready` when everything is already on disk (the common case on every restart
  * and every upgrade that did not move a pin) and to `needed` when something is
- * missing, which is the state the admin panel turns into "2.5 GB — Download".
+ * missing, which is the state `tradioai_status` reports as waiting on files.
  * `startWeightsDownload()` is the only thing that transfers bytes.
  *
  * Fire-and-forget by design. Returning the promise would invite a caller to
  * await it on the server thread, which is the one thing this must never do.
  */
-export function syncWeights(plan: ProviderPlan, root: string = resourceRoot()): void {
+export function syncWeights(plan: ProviderPlan, root: string = localRoot()): void {
   const local = localCapabilities(plan);
   const key = local.join(",");
   if (key === sync.key && sync.state !== "degraded") return;
@@ -381,10 +381,10 @@ export function syncWeights(plan: ProviderPlan, root: string = resourceRoot()): 
     }
     sync = { state: "needed", key, unavailable: [], needed: missing };
     aiLog.info(
-      `AI Dispatching is waiting on model files: ${missing.length} artifact(s), ` +
+      `The AI dispatcher is waiting on model files: ${missing.length} artifact(s), ` +
         `${formatBytes(totalBytes(missing))}. Nothing has been downloaded. ` +
-        `Start it from the admin panel under Settings -> AI Dispatcher, or run ` +
-        `'${DOWNLOAD_COMMAND}' here. The radio itself is unaffected.`,
+        `Run '${DOWNLOAD_COMMAND}' in this console to fetch them, or set a hosted ` +
+        `provider for those capabilities in config.lua. tRadio itself is unaffected.`,
     );
   })();
 }
@@ -396,7 +396,7 @@ export function syncWeights(plan: ProviderPlan, root: string = resourceRoot()): 
  * there is nothing to fetch, so the caller can answer the panel honestly instead
  * of implying it just kicked something off.
  */
-export function startWeightsDownload(plan: ProviderPlan, root: string = resourceRoot()): boolean {
+export function startWeightsDownload(plan: ProviderPlan, root: string = localRoot()): boolean {
   if (sync.state === "working") return false;
   const local = localCapabilities(plan);
   if (local.length === 0) return false;
@@ -457,11 +457,10 @@ async function run(
     // `ensureEngines` has already logged the per-archive reason, including which
     // of the two failures it was and what to do about each.
     aiLog.error(
-      `AI Dispatching is UNAVAILABLE — could not install the local inference engine for: ` +
-        `${engines.unavailable.join(", ")}. The radio itself is unaffected. ` +
-        `Retry from the admin panel under Settings -> AI Dispatcher, or run ` +
-        `'${DOWNLOAD_COMMAND}' here, or set a hosted provider for those ` +
-        `capabilities in the AI config.`,
+      `The AI dispatcher is UNAVAILABLE — could not install the local inference engine for: ` +
+        `${engines.unavailable.join(", ")}. tRadio itself is unaffected. ` +
+        `Retry with '${DOWNLOAD_COMMAND}' in this console, or set a hosted provider for ` +
+        `those capabilities in config.lua.`,
     );
     return;
   }
@@ -477,20 +476,19 @@ async function run(
   }
 
   sync = { state: "degraded", key, unavailable: result.unavailable, needed: sync.needed };
-  // Name the FEATURE, not the resource. tRadio is running: channels, trunking,
-  // 3D audio and the panel are unaffected, and an operator reading "tRadio
-  // failed" would go looking for a problem that is not there.
+  // Name the FEATURE, not the resource. tRadio is running: channels, trunking and
+  // 3D audio are unaffected, and an operator reading "tRadio failed" would go looking
+  // for a problem that is not there.
   aiLog.error(
-    `AI Dispatching is UNAVAILABLE — could not obtain model weights for: ` +
-      `${result.unavailable.join(", ")}. The radio itself is unaffected. ` +
-      `Retry from the admin panel under Settings -> AI Dispatcher, or run ` +
-      `'${DOWNLOAD_COMMAND}' here, or set a hosted provider for those ` +
-      `capabilities in the AI config.`,
+    `The AI dispatcher is UNAVAILABLE — could not obtain model weights for: ` +
+      `${result.unavailable.join(", ")}. tRadio itself is unaffected. ` +
+      `Retry with '${DOWNLOAD_COMMAND}' in this console, or set a hosted provider for ` +
+      `those capabilities in config.lua.`,
   );
 }
 
 /**
- * The console half of the same decision, for operators who are not in the panel.
+ * The console command for the same decision.
  *
  * `restricted: true`, so it is a server-console command and not something a
  * player can type in chat — it spends the host's bandwidth and disk.
@@ -525,7 +523,7 @@ export function registerWeightsCommand(plan: () => ProviderPlan): void {
         const total = weightsStatus().neededBytes;
         aiLog.info(
           `weights: starting download${total > 0 ? ` — ${formatBytes(total)}` : ""}. ` +
-            "The radio is usable throughout; progress follows here and in the admin panel.",
+            "tRadio is usable throughout; progress follows here.",
         );
       } else {
         // Every capability hosted: there is nothing local to fetch. Say so rather

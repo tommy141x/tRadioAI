@@ -354,7 +354,7 @@ const readiness = createReadiness(async () => {
   const plan = providerPlan();
   // A local engine cannot be warmed before its model files exist, and on a fresh
   // install they never do — the weights are a 2.5 GB download the operator opts
-  // into from the admin panel. Starting them anyway is what produced "no local
+  // into on the console. Starting them anyway is what produced "no local
   // text model installed" / "no local transcription model installed" on first
   // launch: a warning about the absence of something nobody asked for yet.
   //
@@ -578,7 +578,7 @@ function callIntakeContext(entry: AnsweredCall, transcript: string): AiTurnConte
  * Whatever `Config.instructions` returns — "if a unit calls a pursuit,
  * put SIGNAL 100 up", "units on OPS-2 are fire, not police", anything. Asked per
  * turn and given the context, so guidance can differ by channel or by who is
- * talking. Layered underneath tRadio's own rules by `buildSystemPrompt`, never
+ * talking. Layered underneath this resource's own rules by `buildSystemPrompt`, never
  * in place of them.
  */
 function operatorInstructions(context: AiTurnContext): string {
@@ -1517,7 +1517,7 @@ function channelForCall(service: string, origin: Point | null): number | null {
 /**
  * A call, put out on the air unprompted.
  *
- * Reached from tRadio's own 911 queue and from anything else that hands the
+ * Reached from tRadio's 911 queue and from anything else that hands the
  * dispatcher a call — see `tradioai:call`.
  */
 function announceCall(call: AiCallInfo, coords: { x: number; y: number; z: number } | null): void {

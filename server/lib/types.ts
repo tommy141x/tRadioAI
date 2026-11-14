@@ -75,7 +75,7 @@ export interface ToolResult {
 /**
  * A call the dispatcher is being asked to put out on the air.
  *
- * Not only 911. tRadio's own 911 queue is one producer; a CAD, a job script or
+ * Not only 911. tRadio's 911 queue is one producer; a CAD, a job script or
  * another resource can hand the dispatcher a call through the same seam, and
  * `source` is how the dispatcher knows which it is — "911", "CAD", "Fire
  * Control" — without tRadio having to know what any of them are.
@@ -201,7 +201,7 @@ export interface AudioClip {
 
 export type VoiceGender = "male" | "female";
 
-/** Runtime configuration, normalized from the admin panel and config.lua. */
+/** Runtime configuration, normalized from config.lua. */
 export interface AiDispatchConfig {
   enabled: boolean;
   /** Normalized frequencies the dispatcher monitors. Empty means none. */
@@ -211,7 +211,7 @@ export interface AiDispatchConfig {
   /** Put new 911 calls out on the air unprompted and assign a unit to them. */
   auto911: boolean;
   /**
-   * Pick up 911 calls and talk to the caller, when no human is on the panel.
+   * Pick up 911 calls and talk to the caller, when no human dispatcher is signed on.
    *
    * Off by default, and that is not timidity about the model. Answering a call
    * is the dispatcher speaking directly to a member of the public with nobody

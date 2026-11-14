@@ -69,7 +69,9 @@ function stamp(dir: string, commit: string): string {
   for (const rel of stagedPaths(dir)) {
     hash.update(rel);
     hash.update("\0");
-    hash.update(rel === "fxmanifest.lua" ? Buffer.from(bare, "utf8") : readFileSync(join(dir, rel)));
+    hash.update(
+      rel === "fxmanifest.lua" ? Buffer.from(bare, "utf8") : readFileSync(join(dir, rel)),
+    );
   }
   const id = `${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${hash.digest("hex").slice(0, 8)}`;
   const commitLine = commit ? `tlib_commit '${commit}'\n` : "";

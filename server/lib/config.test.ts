@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, describe, expect, test } from "bun:test";
+import { afterAll, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -12,6 +12,7 @@ import {
   resetAiConfig,
   voiceFor,
 } from "./config";
+import { aiLog } from "./logger";
 import { DEFAULT_DEMEANOR, DEMEANORS } from "./prompt";
 
 beforeEach(() => {
@@ -160,6 +161,26 @@ describe("applyAiConfig", () => {
     } finally {
       resetAiConfig();
       rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  /**
+   * tLib starts an engine only from this resource's own folder, so engines downloaded
+   * under another root are never found. The symptom without this warning is a launcher
+   * refusal that names the program and not the folder.
+   */
+  test("a root outside the resource is named, and the resource's own is not", () => {
+    const warn = spyOn(aiLog, "warn").mockImplementation(() => {});
+    try {
+      applyAiConfig({ localEngine: { root: "/mnt/elsewhere/tradioai" } });
+      const said = () => warn.mock.calls.map((call) => String(call[0])).join(" | ");
+      expect(said()).toContain("outside this resource");
+
+      warn.mockClear();
+      applyAiConfig({ localEngine: { root: `${GetResourcePath("tRadioAI")}/` } });
+      expect(said()).not.toContain("outside this resource");
+    } finally {
+      warn.mockRestore();
     }
   });
 

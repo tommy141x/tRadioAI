@@ -18,6 +18,7 @@ import { hostedAllowed, noteHostedCall } from "./budget";
 import {
   configureLocal,
   localEndpoint,
+  resourceRoot,
   localFailure,
   localSpeechFailure,
   stopLocalEngines,
@@ -395,6 +396,8 @@ function gender(value: unknown): VoiceGender {
   return value === "male" || value === "female" ? value : DEFAULTS.voiceGender;
 }
 
+const trimSlash = (value: string) => value.replace(/[\\/]+$/, "");
+
 export function applyAiConfig(raw: unknown): void {
   const payload = (raw ?? {}) as Record<string, unknown>;
 
@@ -458,12 +461,24 @@ export function applyAiConfig(raw: unknown): void {
   plan = resolveProviders(withKeyPresence(lastProvidersRaw));
 
   const localRaw = (payload.localEngine ?? {}) as Record<string, unknown>;
+  const requestedRoot = str(localRaw.root, "", 256);
   configureLocal({
-    root: str(localRaw.root, "", 256),
+    root: requestedRoot,
     textModel: str(localRaw.textModel, "", 256),
     transcribeModel: str(localRaw.transcribeModel, "", 256),
     voicesDir: str(localRaw.voicesDir, "", 256),
   });
+  // tLib starts an engine only from this resource's own folder, whatever root the
+  // download went to. Said once at config time, because the symptom otherwise is a
+  // launcher refusal that names the program and not the folder.
+  if (requestedRoot && trimSlash(requestedRoot) !== trimSlash(resourceRoot())) {
+    aiLog.warn(
+      `config: localEngine.root is ${requestedRoot}, outside this resource. tLib starts engines ` +
+        "only from this resource's own folder, so engines downloaded there will not be found " +
+        "unless server/bin inside the resource links to them. Models and voices are read from " +
+        "that root as configured.",
+    );
+  }
 
   aiLog.debug(
     `config: enabled=${current.enabled} channels=${current.channels.length} ` +

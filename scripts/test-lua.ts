@@ -31,7 +31,7 @@ const CONTROL = process.env.LUA_CONTROL === "1";
 function runSuite(
   relativePath: string,
   quiet = false,
-  extraEnv: Record<string, string> = {}
+  extraEnv: Record<string, string> = {},
 ): { code: number; output: string } {
   const result = Bun.spawnSync(
     ["bunx", "--bun", "fengari", "scripts/run-lua-suite.lua", relativePath],
@@ -40,7 +40,7 @@ function runSuite(
       stdout: quiet ? "pipe" : "inherit",
       stderr: quiet ? "pipe" : "inherit",
       env: { ...process.env, ...extraEnv },
-    }
+    },
   );
   // `exitCode` is null when the process was killed by a signal, which is a failure.
   const output = quiet
@@ -77,13 +77,13 @@ if (CONTROL) {
       failures.push(
         `${suite} (${label}) failed under its control, but did not report CONTROL OK. ` +
           "A negative assertion still held against accepted input, so it is not reading the " +
-          "code path it names."
+          "code path it names.",
       );
       console.log(`  CONTROL NOT SATISFIED  ${suite} — exit ${code}, no CONTROL OK`);
     } else if (code === 0) {
       failures.push(
         `${suite} (${label}) exited 0. The Lua gate cannot fail there, so every passing run of ` +
-          "`bun run test:lua` has been measuring nothing."
+          "`bun run test:lua` has been measuring nothing.",
       );
       console.log(`  NOT FAILING  ${suite} — exit 0`);
     } else {
@@ -96,7 +96,7 @@ if (CONTROL) {
   const empty = await discover("scripts/controls/lua/empty");
   if (empty.length !== 0) {
     failures.push(
-      "scripts/controls/lua/empty is not empty, so the vacuous-pass guard was not exercised."
+      "scripts/controls/lua/empty is not empty, so the vacuous-pass guard was not exercised.",
     );
   } else {
     console.log("  discovery over an empty directory found 0 suites, as required");

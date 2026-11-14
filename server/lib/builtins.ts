@@ -488,7 +488,7 @@ const ALL: BuiltinTool[] = [
   // model's behaviour. `scripts/probe-self-report.ts` has an `imperial` column
   // precisely so the cost of a CAD tool set is a number rather than a hope —
   // measured 70% status capture with controls clean, against 100%/clean for the
-  // one-tool shipped set. See AGENTS.md 6.1.
+  // one-tool shipped set. See docs/design/dispatcher-design-notes.md.
   ...CAD_TOOLS,
 ];
 

@@ -7,7 +7,7 @@
  *     patch channels, put traffic out on another channel, raise and lift the
  *     operator's own alerts, send a tone.
  *   - **Lua tools** — the dispatcher's built-in unit-status tool in
- *     `server/sv_ai_dispatch.lua`, and customer tools through the
+ *     `server/sv_tools.lua`, and customer tools through the
  *     `Config.tools` hook in `config/sv_functions.lua`. Nothing about
  *     those is known here beyond what Lua describes, which is the point:
  *     shipping a new capability must not require touching escrowed TypeScript.

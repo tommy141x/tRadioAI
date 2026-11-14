@@ -202,6 +202,18 @@ function workloadFor(capability: ServedCapability): string {
 }
 
 /** Exported so `weights.ts` resolves the same root this module reads models from. */
+/**
+ * Where engines, models and voices are looked for: `localEngine.root`, else the resource.
+ *
+ * Downloads (`weights.ts`) go to the same place, so a configured root cannot make the
+ * fetch and the launch disagree. tLib starts an engine only from this resource's own
+ * folder, so a root outside it works only where `server/bin` there is linked into the
+ * resource; `applyAiConfig` says so when it sees one.
+ */
+export function localRoot(): string {
+  return paths?.root ?? resourceRoot();
+}
+
 export function resourceRoot(): string {
   try {
     return GetResourcePath(GetCurrentResourceName());

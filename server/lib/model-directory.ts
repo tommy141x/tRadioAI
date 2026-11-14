@@ -9,7 +9,7 @@
  * dropdown, the provider 404s it, and the dispatcher falls back to local with a
  * message about the model rather than about the list that offered it.
  *
- * Every provider tRadio speaks to publishes its own catalogue, so the panel asks. The
+ * Every hosted provider publishes its own catalogue, so `tradioai_models` asks. The
  * list is therefore always current and nothing here has to be maintained.
  *
  * ## The two dialects
@@ -27,14 +27,14 @@
  * reliably says which capability a model serves — OpenAI lists embeddings, moderation
  * and image models beside the chat ones with no machine-readable distinction. Guessing
  * from the name (`whisper`, `tts`, `gpt`) would be a heuristic that silently hides a
- * model the operator wanted. So the full list is returned and the panel makes it
+ * model the operator wanted. So the full list is returned and the console prints it
  * searchable, which is honest about what is known and faster to use than a wrong
  * filter.
  *
  * ## Failure is always an empty list with a reason
  *
  * No key, a revoked key, a network timeout: every one resolves rather than throwing,
- * and the panel renders a hint per reason. The model field stays free text throughout,
+ * and the console prints a hint per reason. The model field stays free text throughout,
  * so a provider that cannot be listed never blocks configuration.
  */
 

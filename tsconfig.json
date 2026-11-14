@@ -2,9 +2,7 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
-    "lib": [
-      "ES2022"
-    ],
+    "lib": ["ES2022"],
     "moduleResolution": "bundler",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -13,17 +11,8 @@
     "noEmit": true,
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
-    "types": [
-      "node",
-      "bun-types"
-    ]
+    "types": ["node", "bun-types"]
   },
-  "include": [
-    "server",
-    "scripts/test-setup.ts"
-  ],
-  "exclude": [
-    "server/dist",
-    "node_modules"
-  ]
+  "include": ["server", "scripts/test-setup.ts"],
+  "exclude": ["server/dist", "node_modules"]
 }

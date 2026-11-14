@@ -65,8 +65,14 @@ export function releaseProblems(dir: string): string[] {
   for (const file of files) {
     const lower = file.toLowerCase();
     const bad = BANNED_EXTENSIONS.find((extension) => lower.endsWith(extension));
-    if (bad) problems.push(`${file}: a ${bad} file cannot ship; it is fetched from upstream at first start`);
-    const segment = file.split("/").slice(0, -1).find((part) => BANNED_SEGMENTS.includes(part));
+    if (bad)
+      problems.push(
+        `${file}: a ${bad} file cannot ship; it is fetched from upstream at first start`,
+      );
+    const segment = file
+      .split("/")
+      .slice(0, -1)
+      .find((part) => BANNED_SEGMENTS.includes(part));
     if (segment) problems.push(`${file}: inside "${segment}", which is never staged`);
 
     if (TEXT_EXTENSIONS.some((extension) => lower.endsWith(extension))) {
@@ -85,7 +91,9 @@ export function releaseProblems(dir: string): string[] {
     // Open source and not escrowed: an escrow line would make the zip unreadable to the
     // people the licence is for.
     if (/escrow_ignore/.test(text)) problems.push("fxmanifest.lua declares escrow_ignore");
-    for (const [, listed] of text.matchAll(/^\s*'((?:config|server)\/[^']+\.(?:lua|js))',?\s*$/gm)) {
+    for (const [, listed] of text.matchAll(
+      /^\s*'((?:config|server)\/[^']+\.(?:lua|js))',?\s*$/gm,
+    )) {
       if (listed && !existsSync(join(dir, listed))) {
         problems.push(`fxmanifest.lua lists ${listed}, which is not in the release`);
       }

@@ -4,7 +4,7 @@ import type { AiOutcome } from "./types";
  * Saying what a tool did, without asking the model to put it into words.
  *
  * Every tool's `run` already returns a message written to be spoken — the tool
- * contract in `server/sv_ai_dispatch.lua` says so in as many words: "run's message
+ * contract in `server/sv_tools.lua` says so in as many words: "run's message
  * is read back to the model, which then says it on the air — so write it as a
  * reason, not an error code. 'the CAD is offline' becomes a sensible transmission;
  * 'ERR_TIMEOUT' does not." So for the common turn there is nothing left to decide,

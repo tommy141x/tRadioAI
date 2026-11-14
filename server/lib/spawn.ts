@@ -1,5 +1,5 @@
 /**
- * Starting tRadio's own engine binaries, through tLib's spawn broker.
+ * Starting the local engine binaries, through tLib's spawn broker.
  *
  * FXServer refuses `spawn` unless the resource is named in an
  * `add_unsafe_child_process_permission` line in server.cfg, and the check is

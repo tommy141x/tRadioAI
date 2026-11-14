@@ -25,7 +25,7 @@
  *  - naming only `unit_status` in the restated line, as a diagnostic — still 0 of 4 on
  *    the failing case, and it took the over-reach control to 0 of 2. So the cause is the
  *    other tools being PRESENT, not pressure from the restated list. A fourth prompt
- *    revision is not the answer and AGENTS.md §6.1 says so in as many words: "move it
+ *    revision is not the answer and docs/design/dispatcher-design-notes.md says so in as many words: "move it
  *    off generation onto a fixed line, a grounded tool or a server-side decision".
  *
  * ## So the model keeps the half it is reliable at
@@ -38,7 +38,7 @@
  *
  * `about` is NOT trusted. It goes through {@link argumentRefusal} — the same gate
  * `runTool` applies — so an invented label cannot become authoritative roster data that
- * feeds back into every later turn. That is the protection AGENTS.md calls the strongest
+ * feeds back into every later turn. That is the protection the design notes call the strongest
  * one in the subsystem, and this leans on it rather than working around it.
  *
  * The control that nearly made this unsafe is "King 41, be advised there's a lot of
@@ -50,7 +50,7 @@
  *
  * ## Why `unit_status` by id, knowing that keying by id has already been a trap
  *
- * AGENTS.md records `groundedIn` and `outcomeReadback` being keyed on the exact id
+ * The design notes record `groundedIn` and `outcomeReadback` being keyed on the exact id
  * `unit_status` and every offline run silently missing both because the stubs were
  * called `set_unit_status`. The id is used here anyway, deliberately: it is the one tool
  * tRadio ships, and the generalisation — any tool whose input declares it is a quote —

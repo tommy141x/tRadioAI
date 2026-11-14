@@ -93,7 +93,7 @@ const PROFILES: Record<ProviderId, ProviderProfile> = {
   // base64 in a JSON body; Vercel's docs state multipart uploads are not supported,
   // which is what tRadio sends.
   //
-  // Listing all three made the panel offer a pairing that cannot work, and asking
+  // Listing all three offered a pairing that cannot work, and asking
   // for speech produced `404 invalid_request_error: Invalid URL (POST
   // /v1/audio/speech)` — reported 2026-10-19 by an operator whose dispatcher heard
   // the call, drafted the reply and then logged "skipped: could not air the
@@ -126,7 +126,7 @@ const PROFILES: Record<ProviderId, ProviderProfile> = {
 /**
  * Every provider that can serve `capability`, `local` first.
  *
- * Exported so the admin panel can offer a picker that cannot express an impossible
+ * Exported so a picker or a status line cannot express an impossible
  * pairing. The alternative — the frontend carrying its own copy of which provider
  * serves what — is a second table that goes stale the first time one is added, and the
  * symptom would be a dropdown offering ElevenLabs for transcription.
