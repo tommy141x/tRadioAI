@@ -175,7 +175,7 @@ export interface DispatchSim {
    * `expectReplyFrom` window open — and inside that window the dispatcher answers
    * whatever that unit says next, wake phrase or not, by design. So the case
    * passed or failed on what ran before it and how long that took, which is the
-   * same class of cross-contamination `AGENTS.md` §8 documents for the test suite.
+   * same class of cross-contamination as order-dependent tests.
    */
   resetChannel(): void;
   /**

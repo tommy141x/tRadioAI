@@ -123,7 +123,7 @@ export function formatBytes(bytes: number): string {
  *
  * Size and mtime are compared, not content. Re-hashing a multi-gigabyte file at
  * every boot costs a minute of startup to learn something the last boot already
- * established -- the same argument `tRadio/server/lib/ai/local-engine.ts` makes
+ * established -- the same argument `server/lib/local-engine.ts` makes
  * for reading `artifacts.json` instead of hashing. This is a cache-validity
  * check, not a security check: the marker only ever confirms work already done
  * against the pin, and any mismatch falls back to a real hash.

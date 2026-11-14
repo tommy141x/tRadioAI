@@ -6,7 +6,7 @@
  *
  * ## Why this file exists
  *
- * `server/lib/ai/spawn.ts` starts llama-server, whisper-server and piper through
+ * `server/lib/spawn.ts` starts llama-server, whisper-server and piper through
  * tLib's broker and has **no local fallback on purpose** — a resource missing the
  * broker is misinstalled, and spawning directly would quietly re-create the
  * per-resource `add_unsafe_child_process_permission` line the broker exists to

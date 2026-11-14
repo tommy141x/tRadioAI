@@ -43,13 +43,12 @@ import { isProviderId, keyConvar, type ProviderId } from "./providers";
 
 const log = aiLog;
 
-/** Long enough for a cold connection, short enough not to hold a panel request open. */
+/** Long enough for a cold connection, short enough not to hold `tradioai_models` open. */
 const TIMEOUT_MS = 10_000;
 
-/** A catalogue changes rarely; a panel that re-renders must not re-ask per keystroke. */
+/** A catalogue changes rarely; asking twice in a minute gets the same answer. */
 const TTL_MS = 60_000;
 
-/** Mirrors `DirectoryResult` in discord-directory.ts — same shape, same reasons. */
 export type ModelListResult =
   | { ok: true; models: string[] }
   | { ok: false; reason: "no_key" | "unauthorized" | "unsupported" | "unreachable" };
@@ -134,7 +133,7 @@ export async function listModels(provider: string): Promise<ModelListResult> {
     result = { ok: false, reason: "unreachable" };
   }
 
-  // Failures are cached too, briefly. Without that, a panel sitting on a provider with
+  // Failures are cached too, briefly. Without that, repeating the command against a provider with
   // a bad key re-requests on every render and earns a rate limit on top of the 401.
   cache.set(provider, { at: Date.now(), value: result });
   return result;

@@ -20,7 +20,7 @@
  *  - restating the whole tool line after the transmission instead of the ids
  *    (`prompt.ts`) — moved nothing, cost a status case;
  *  - widening the shipped tool's own declaration to name what the unit is DOING
- *    (`server/sv_ai_dispatch.lua`, tried in the probe's copy) — took "show me out at
+ *    (`server/sv_tools.lua`, tried in the probe's copy) — took "show me out at
  *    Grove and Jefferson" from a status to a go-ahead at three tools;
  *  - naming only `unit_status` in the restated line, as a diagnostic — still 0 of 4 on
  *    the failing case, and it took the over-reach control to 0 of 2. So the cause is the

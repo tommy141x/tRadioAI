@@ -10,7 +10,7 @@
  *     `server/sv_tools.lua`, and customer tools through the
  *     `Config.tools` hook in `config/sv_functions.lua`. Nothing about
  *     those is known here beyond what Lua describes, which is the point:
- *     shipping a new capability must not require touching escrowed TypeScript.
+ *     shipping a new capability must not require touching TypeScript.
  *
  * Built-ins are listed first and win a name collision, so an operator cannot
  * shadow `patch_channels` with something that merely sounds like it.

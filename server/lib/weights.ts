@@ -260,7 +260,7 @@ export function weightsStatus(): {
  *
  * Deliberately the cheap half of `ensureAssets`'s own check: the marker beside
  * the file, or failing that a size match. It does NOT hash. Hashing 2.5 GB to
- * paint a status card would stall the panel for a minute and would be answering
+ * answer `tradioai_status` would stall it for a minute and would be answering
  * a question nobody asked — the hash still runs inside `ensureAssets` before
  * anything is used, so a file that is the right size and the wrong bytes is
  * caught there, where it matters, rather than here.
@@ -357,7 +357,7 @@ export function syncWeights(plan: ProviderPlan, root: string = localRoot()): voi
     let missing: PinnedAsset[];
     try {
       // Engine archives first in the list as well as first in the transfer, so
-      // the panel's total is what the operator is actually about to download.
+      // the total printed is what the operator is actually about to download.
       // A `PinnedArchive` IS a `PinnedAsset`, so `totalBytes` and
       // `formatBytes` below need no special case — the prompt said "2.5 GB"
       // while also being about to fetch ~48 MB of engine, and now says so.
@@ -393,7 +393,7 @@ export function syncWeights(plan: ProviderPlan, root: string = localRoot()): voi
  * The operator said yes. Transfer the bytes.
  *
  * Returns whether a run was started: `false` when one is already in flight or
- * there is nothing to fetch, so the caller can answer the panel honestly instead
+ * there is nothing to fetch, so the caller can answer the operator honestly instead
  * of implying it just kicked something off.
  */
 export function startWeightsDownload(plan: ProviderPlan, root: string = localRoot()): boolean {

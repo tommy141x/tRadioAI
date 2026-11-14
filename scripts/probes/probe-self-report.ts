@@ -487,7 +487,7 @@ async function measure(tools: AiTool[], label: string): Promise<Tally> {
        *
        * That is not a detail — the whole point of `recordedSelfReport` is that it takes
        * BUG-72482's decision away from the model, so a probe that only watches the model
-       * would report the fix as a null result. Imported from `server/lib/ai`, never
+       * would report the fix as a null result. Imported from `server/lib`, never
        * restated, so the probe cannot drift from what `index.ts` runs.
        */
       const recorded = recordedSelfReport(decision, context(probe), tools);

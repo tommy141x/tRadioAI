@@ -221,7 +221,7 @@ const LUA = {
    * harness was measuring a configuration the product does not have, and a worse
    * one.
    *
-   * Transcribed from `server/sv_ai_dispatch.lua` BUILTIN_TOOLS: the id, the
+   * Transcribed from `server/sv_tools.lua` BUILTIN_TOOLS: the id, the
    * description, the input wording, `cleanStatus`'s 48-character cap and trailing
    * punctuation strip, and the "<callsign> is now showing <status>" readback. The
    * description matters as much as the id — the shipped one is a CLASSIFICATION
