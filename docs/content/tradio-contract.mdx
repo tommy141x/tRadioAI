@@ -76,6 +76,8 @@ These already exist (`api-reference`); tRadioAI reads only the fields named.
 | `already_patched` | `F` is already in a patch | `frequency`, `label` of that patch |
 | `too_few` | fewer than two frequencies | none |
 | `not_permitted` | the caller is not in `Config.integrations` | none |
+| `disabled` | Channel Patching is switched off in tRadio | none |
+| `unknown_channel` | a frequency is not a channel tRadio has | none |
 
 A patch made this way is saved the same way the dispatch panel's are (the `tradio:savePatch` path) and broadcast as `patchCreated`.
 
