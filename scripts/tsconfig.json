@@ -1,0 +1,6 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": { "types": ["node", "bun-types"] },
+  "include": ["harness", "probes", "sim", "controls", "*.ts", "../server/globals.d.ts"],
+  "exclude": ["../server/dist", "../node_modules"]
+}
