@@ -4,6 +4,11 @@
   "license": "MIT",
   "private": true,
   "description": "tRadioAI: an AI dispatcher add-on for tRadio on FiveM",
+  "secretGate": {
+    "ignore": {
+      "scripts/tests/config.lua": "a Lua test suite, not a config: its `SECRET = 'sk-this-must-never-leave-the-file-...'` is a synthetic canary proving tlib.config never echoes a secret into logs or events. The config rule matches it only because the basename contains `config`. Ignored by exact path, not by allowing `SECRET` everywhere."
+    }
+  },
   "scripts": {
     "secrets:check": "bun run ../tLib/scripts/secret-gate.ts",
     "secrets:install-hooks": "bun run ../tLib/scripts/secret-gate.ts --install-hooks",
