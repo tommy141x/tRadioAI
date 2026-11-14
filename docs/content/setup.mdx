@@ -1,0 +1,116 @@
+---
+title: "Setup"
+description: "Install tRadioAI next to tRadio, name it in tRadio's integration list, add provider keys and switch it on."
+order: 1
+group: "tRadioAI"
+published: true
+---
+
+A unit says "Dispatch, 1-Adam-12, I'll be 10-8" and gets an answer on the same channel, through the same radio chain. It is off until you enable it, and hears only the channels you list.
+
+## Requirements
+
+| | |
+| --- | --- |
+| tRadio | a version that lists the **integration hooks** in its changelog. An older tRadio is detected and tRadioAI stays idle, naming what is missing |
+| tLib | 1.2.0 or newer (`tlib_min_version` in the manifest), started before both |
+| Server | FXServer on Windows or Linux, OneSync (unit positions are read server-side) |
+| Hosted providers | an API key per provider you use, nothing else |
+| Local engine | optional; see [The local engine](/docs/tRadioAI/local-engine) |
+
+## Install
+
+1. Download `tRadioAI-<version>.zip` from the [GitHub releases](https://github.com/tommy141x/tRadioAI/releases) (the release asset, not "Source code") and unpack it into your `resources` folder as `tRadioAI`.
+2. In `server.cfg`, start it **after** tLib and tRadio:
+
+   ```cfg
+   ensure tLib
+   ensure tRadio
+   ensure tRadioAI
+   ```
+
+3. In **tRadio's** `config/config.lua`, name this resource. tRadio refuses every call from a resource it has not been told about, so this line is the operator's consent to let tRadioAI hear and speak on the radio:
+
+   ```lua
+   Config.integrations = { 'tRadioAI' }
+   ```
+
+   Restart tRadio after changing it. Without the line tRadioAI prints the exact line to add and retries every 30 seconds.
+
+4. Only if you run the **local engine**, allow tLib to start programs. This is one line and it names tLib, not tRadioAI:
+
+   ```cfg
+   add_unsafe_child_process_permission tLib
+   ```
+
+   Hosted providers need no child process, so a server using only hosted providers does not need it.
+
+## Keys
+
+Keys are `server.cfg` convars, never fields in `config.lua` (that file is the one that gets pasted into support threads). A key typed into `config.lua` is ignored and the console says so, without printing it.
+
+```cfg
+set tradioai_openai_key     "sk-..."
+set tradioai_groq_key       "gsk_..."
+set tradioai_openrouter_key "sk-or-..."
+set tradioai_vercel_key     "..."
+set tradioai_elevenlabs_key "..."
+```
+
+Check that a key is read with `tradioai_status` in the server console. It reports each key as `set` or `not set` and never shows any part of it.
+
+## Configure
+
+Edit `config/config.lua`. **That file ships with the release and is overwritten when you update**, so keep your own copy of your values and merge forward; the release notes list any key that was added.
+
+Minimum to switch it on:
+
+```lua
+Config.enabled  = true
+Config.channels = { 154.755, 460.250 }   -- frequencies it listens to and answers on
+```
+
+With no providers set, all three capabilities run on the [local engine](/docs/tRadioAI/local-engine). The first start then waits for model files; run `tradioai_download` in the console to fetch them (about 2.5 GB), or point `text` at a [hosted provider](/docs/tRadioAI/providers) and that download never happens.
+
+A good first setup is hosted text and speech with the local engine left off:
+
+```lua
+Config.providers = {
+    text   = { provider = 'groq',       model = 'llama-3.3-70b-versatile' },
+    speech = { provider = 'elevenlabs' },
+}
+```
+
+Every hosted provider except ElevenLabs **needs a `model`**; without one that capability falls back to local and the console says which setting to fill in. `tradioai_models <provider>` lists the ids a provider accepts.
+
+## Check it
+
+`tradioai_status` in the server console prints what tRadio offers, whether the dispatcher is enabled, whether its station is open, which engine serves each capability, which keys are set and the local engine's state. Every turn is also logged:
+
+```
+[tRadioAI] turn — K31 on PD-1 (850)
+  heard:   "dispatch k31 show me out at grove"
+  ...
+```
+
+`logs/ai-dispatch.jsonl` holds the same turns with the transcript, tool results, the drafted reply and the aired reply. Read it when answers are odd rather than absent; a draft that differs from what aired means a tool outcome rewrote it.
+
+## If you used the dispatcher inside tRadio before October 26
+
+Nothing is read automatically. Move three things:
+
+- **Provider keys.** They were stored in tRadio's `secrets.json`. Copy each into `server.cfg` as the matching `set tradioai_<provider>_key` line above. tRadio does not delete the file; delete it yourself once you have copied them.
+- **Your settings.** They were in tRadio's admin panel and `Config.aiDispatch`. They are now `config/config.lua` here; the names are the same without the `aiDispatch` prefix, and the panel's Settings table is the list in that file.
+- **Your hooks.** The five hooks in tRadio's `sv_functions.lua` moved to this resource's `config/sv_functions.lua` under shorter names:
+
+| Was | Now |
+| --- | --- |
+| `Config.aiDispatchTools` | `Config.tools` |
+| `Config.aiDispatchIncidents` | `Config.incidents` |
+| `Config.aiDispatchUnitNote` | `Config.unitNote` |
+| `Config.aiDispatchLocation` | `Config.location` |
+| `Config.aiDispatchInstructions` | `Config.instructions` |
+
+The event another resource fired to hand the dispatcher a call is now `tradioai:call` (was `tradio:ai:call`), and the unit-status event is `tradioai:unitStatusChanged`.
+
+**Model files you already downloaded** (up to 2.5 GB under tRadio's `server/models`) can be reused instead of fetched again by pointing `localEngine.root` at that folder; see [The local engine](/docs/tRadioAI/local-engine#where-the-files-live) for what that does and does not cover.

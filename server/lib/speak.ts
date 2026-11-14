@@ -214,7 +214,13 @@ export async function airReply(
   const result = await transmitOn(frequency, narrowband, NARROWBAND_RATE, signal, () =>
     onAudioStart?.(duration),
   );
-  if (!result.ok) aiLog.debug(`speak: ${frequency} not aired — ${result.reason}`);
+  if (!result.ok) {
+    // An abort is the turn's own deadline and already has its line; the others are
+    // tRadio saying no, which is what an operator reading "never aired" needs to see.
+    const line = `speak: ${frequency} not aired — ${result.reason}`;
+    if (result.reason === "aborted") aiLog.debug(line);
+    else aiLog.warn(line);
+  }
   return result.ok;
 }
 

@@ -1,0 +1,91 @@
+---
+title: "The local engine"
+description: "Running transcription, the decision model and speech on your own machine: what it needs, where the files live, and the licences and platforms it does and does not cover."
+order: 3
+group: "tRadioAI"
+published: true
+---
+
+Any capability with no hosted provider runs here: CPU-only models beside your server, no account and no open port. They are small, and they sound and reason like it. Move `text` and `speech` to [hosted providers](/docs/tRadioAI/providers) once you are past trying the feature out.
+
+The engines are **llama.cpp** (the decision model), **whisper.cpp** (hearing) and **Piper** (speech). **None of it is in the release zip.** On first start tRadioAI fetches each engine and each model from its own upstream, checks the sha256 pinned in `server/local-engine.lock.json`, and refuses a file that does not match. Nothing is mirrored by this project.
+
+## Fetching
+
+Turn the dispatcher on with a local capability and the console says which files are missing and how big they are. Nothing downloads until you ask:
+
+```
+tradioai_download
+```
+
+tRadio keeps working while it downloads and nothing needs restarting. Point `text` at a hosted provider and the 2.5 GB decision model is never fetched.
+
+| Requirement | Detail |
+| --- | --- |
+| Platform | Windows x86-64 or Linux **x86-64**. No GPU: these are CPU builds |
+| Linux libc | **glibc 2.34 or newer** (Debian 12, Ubuntu 22.04 and newer) |
+| RAM | about 2 GB free with both models resident (1.3 GB text, 0.2 GB hearing) |
+| Disk | about 200 MB of engine binaries plus 2.5 GB of model files |
+| Cores | half the machine's cores per engine, rounded down, minimum one |
+| Ports | none. Both servers bind `127.0.0.1`, and no setting moves them off |
+
+And one `server.cfg` line, because FXServer will not let a resource start a program otherwise:
+
+```cfg
+add_unsafe_child_process_permission tLib
+```
+
+tLib starts the engines on tRadioAI's behalf. **Naming `tRadioAI` here does nothing.** Without the line the console says the API is restricted and the dispatcher stays quiet. tLib takes a program's *name* from a catalogue it owns, resolves the binary itself, refuses any argument that does not match the declared shape and never accepts a path from the caller, so the permission cannot launch anything this project did not declare.
+
+## Platforms it does not cover
+
+- **arm64 Linux.** The pins are `ubuntu-x64` and `win` only. There is no local engine on an arm64 container (a Raspberry Pi, an Ampere or Graviton host); use hosted providers there. Adding arm64 means new pins in `server/local-engine.lock.json` with their sha256, which needs the upstream arm64 builds to exist and be tested; **not verified**.
+- **Alpine and other musl hosts.** Upstream publishes one Linux x64 build of each engine and all three are glibc-linked, so the kernel cannot find the binary's interpreter and the exec fails with a bare "No such file or directory" naming the binary. This project does not bundle a glibc loader into the release. The `scripts/bundle-linux-libs.sh` tool can harvest one on a glibc host into `server/bin/linux/<engine>/lib`, where tLib's spawn gate picks it up; that route is **not tested against this packaging**. Otherwise run the local engine on a glibc host, or use hosted providers.
+
+## Licences
+
+Stated here because they are part of what you install, and because I could not verify them offline while writing this. **Read the upstream licence of every file before you rely on it, in particular before you redistribute a server image that contains them.**
+
+| Piece | Where it comes from | Licence, as far as I know |
+| --- | --- | --- |
+| llama.cpp | `github.com/ggml-org/llama.cpp` release `b11045` | MIT |
+| whisper.cpp | `github.com/ggml-org/whisper.cpp` release `b5130` | MIT |
+| Piper and its bundled `espeak-ng-data` | `github.com/rhasspy/piper` release `2023.11.14-2` | Piper is MIT. The espeak-ng data it ships is **GPL-3.0**: **verify** what that means for your use |
+| Whisper `base.en` weights | `huggingface.co/ggerganov/whisper.cpp` | MIT, as published by OpenAI |
+| Qwen3-4B-Instruct-2507 weights | `huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF`, a GGUF quantisation of Alibaba's model | Apache-2.0 on the original model card as far as I know; **verify** the quantisation repository's own terms too |
+| Piper voices `en_US-amy-medium`, `en_US-ryan-medium` | `huggingface.co/rhasspy/piper-voices` | each voice has its own licence and model card: **verify** before relying on either |
+
+The exact URLs and hashes are in `server/local-engine.lock.json`, and a weekly job checks the pins still resolve (upstream is allowed to delete a release asset; when one is gone the fix is a new pin in a new release, never a mirror).
+
+## Where the files live
+
+Everything the local engine needs is under this resource's own folder by default:
+
+```
+tRadioAI/server/bin/<win|linux>/<engine>/     engine binaries
+tRadioAI/server/models/                       model files and voices
+tRadioAI/server/.cache/                       downloaded archives
+```
+
+**On a container, mount a persistent volume onto `server/bin`, `server/models` and `server/.cache`**, or the 2.5 GB comes down again every time the resource folder is rebuilt.
+
+`Config.localEngine.root` moves the whole `server/` tree somewhere else, and **tLib starts engines only from this resource's own folder**, so a root outside the resource works only where `server/bin` there is a link into the resource. The console warns at start when the root is outside it. Models and voices are read from the root as configured, and downloads go there too. Mounting volumes is the supported route; treat an external `root` as advanced.
+
+An engine left running by a killed server is cleared on the next start.
+
+## Sharing an engine with another t* resource
+
+Run another resource that uses the same models (tAI is one) and the two will not load them twice. Whichever starts first registers its engine with tLib's inference registry; the other uses it over loopback. Matching is on what is loaded, named in `server/models/artifacts.json`:
+
+```json
+{
+  "text": "qwen3-4b-instruct-2507-q4_k_m",
+  "transcription": "whisper-base.en-q5_1"
+}
+```
+
+**Swap the weights out and you must edit that file.** Two resources naming different models run two engines, costing another 1.3 GB of RAM.
+
+## When it will not start
+
+See [Troubleshooting](/docs/tRadioAI/troubleshooting#the-local-engine).

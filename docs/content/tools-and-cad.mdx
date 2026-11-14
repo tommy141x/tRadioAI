@@ -1,0 +1,175 @@
+---
+title: "Tools, hooks and CAD"
+description: "What the dispatcher can do on the air, how to add your own tools and standing orders, how a CAD or MDT is connected, and what it knows each turn."
+order: 7
+group: "tRadioAI"
+published: true
+---
+
+## How it appears on the channel
+
+It takes a station slot on each covered channel, shown to every unit under its callsign, and signs off a channel when a human dispatcher takes it. Its transmissions are real tRadio transmissions, so patches, trunked sub-frequencies, announcement groups, scanners and 3D audio all work. tRadio encodes the voice with the channel's own codec, so on an analog channel it still sounds vocoded.
+
+A channel runs one exchange at a time. A unit keying up mid-answer is held, then acknowledged by callsign on the next transmission.
+
+## What it knows
+
+Each turn it is told who is on the channel (callsigns, unit ids, status, distance, who is keyed up), recent traffic and anyone who called while it was busy. It is also given **every other channel on your system**, so it uses your names. A **code sheet** (`Config.tenCodes`) is the single biggest improvement to how reliably it hears units: it is used both to bias the recogniser toward your codes and to tell the model what they mean.
+
+```lua
+Config.tenCodes = { ['10-4'] = 'acknowledged', ['10-50'] = 'traffic accident' }
+```
+
+Up to 24 codes. There is no shipped sheet, deliberately: 10-50 is a traffic accident on one agency and a pursuit on the next.
+
+## Alerts, tones and patches
+
+These work on any server with nothing to configure, as long as the tRadio has the hooks:
+
+| Tool | What it is for |
+| --- | --- |
+| `channel_alert` | put one of **your** alerts up on a channel, or lift it |
+| `channel_tone` | send a tone over the channel before an announcement |
+| `patch_channels` / `unpatch_channels` | patch channels together, or take a patch down |
+| `call_another_channel` | put traffic on another channel and come back with the answer |
+
+Alert and tone lists come from your own tRadio configuration, so a server that renamed SIGNAL 100 gets a dispatcher that knows the new name. Direct and trunked channels cannot be patched, and tRadio is the authority on that: the refusal is read back as that channel's own reason. Your [instructions](#your-own-instructions) say when to reach for one.
+
+## Your own instructions
+
+`Config.instructions` in `config/sv_functions.lua` is a blank page:
+
+```lua
+Config.instructions = function(ctx)
+    return [[
+    Los Santos channels are LSPD. Blaine County is BCSO. OPS-3 is fire and EMS.
+    A unit calling a pursuit means SIGNAL 100 goes up. Lift it on code 4 or custody.
+    ]]
+end
+```
+
+It runs once per turn with the full context, so guidance can vary per channel or unit. Keep it cheap. Up to 4000 characters. Your text is **added** to the dispatcher's rules, never substituted.
+
+## How it carries itself
+
+`Config.demeanor` picks the manner it speaks with.
+
+| Key | How it sounds |
+| --- | --- |
+| `measured` | steady and unhurried, whatever the traffic is. The default |
+| `brisk` | impersonal, fewest words, off the air |
+| `veteran` | unsurprised by anything and explaining nothing |
+| `formal` | strict procedure throughout, no informality |
+
+Blank is `measured`. A misspelled key is also `measured`, and the console says so with the four names. A manner changes no limit: ten words, callsign first, and nothing that was not in the traffic, the roster or a tool result.
+
+## Your own tools
+
+Everything it can act on is a **tool**. `unit_status` is built in; register the rest in `config/sv_functions.lua`:
+
+```lua
+Config.tools = function()
+    return {
+        {
+            id = 'tow_request',
+            description = 'the unit is asking for a tow truck',
+            input = 'where the tow is needed, in the unit\'s own words',
+            run = function(ctx, input)
+                if input == '' then return false, 'you did not say where' end
+                TriggerEvent('my_dispatch:requestTow', ctx.serverId, input)
+                return true, 'a tow is en route to ' .. input
+            end,
+        },
+    }
+end
+```
+
+| Field | Required | What it is |
+| --- | --- | --- |
+| `id` | yes | unique: lowercase letters, digits, underscores |
+| `description` | yes | **one line**: when this tool applies |
+| `input` | no | **one line**: what the argument is. Say what it *is*, never what it might be; a small model reads a trailing example as the answer. Omit if it takes none |
+| `available` | no | `function(ctx) -> boolean`. `false` hides it this transmission |
+| `run` | yes | `function(ctx, input) -> ok, message` |
+
+The model names **one** tool and writes its argument in its own words. **The argument is not validated before it reaches you**; `run` accepts or rejects it, and its `message` is read back on the air, so write it as a reason ("the CAD is offline"), not an error code. Every tool runs in a `pcall`. One transmission can take **three** actions, in order. A malformed tool is named in the console once, with the reason, and is not offered.
+
+`ctx` is what it knows about the turn:
+
+| Field | What it holds |
+| --- | --- |
+| `trigger` | `'transmission'`, `'call'` or `'call_intake'` |
+| `serverId`, `callsign`, `unitId` | the unit who keyed up. `0` / `''` on a call turn |
+| `frequency`, `channelName` | where it is happening |
+| `transcript` | what the unit said. `''` on a `call` turn |
+| `roster` | channel units, **nearest first**: `{ serverId, callsign, unitId, status, note, distance, talking }` |
+| `history` | recent traffic, oldest first: `{ who, text, own }` |
+| `waiting` | callsigns who called while the dispatcher was mid-turn |
+| `channels` | every channel: `{ frequency, name, zone, monitored, units, alert, patchedWith }` |
+| `call` | on a call turn: `{ id, source, caller, message, location, priority, service }` |
+
+## Calls
+
+**There is no incident store here, and tRadio keeps none.** A server that has calls already has them in its CAD, and a second copy drifts the first time anyone touches the real one. `Config.incidents` connects four actions (create, attach a unit, clear a unit, close). Whichever you supply become tools; the rest it cannot do. Each is `function(ctx, input) -> ok, message`, and the input is free text, not a call id: "traffic stop, black Sultan, Vespucci" arrives as `create(ctx, 'traffic stop, ...')`. Match it against your records; when you cannot, return `false` with a reason and the unit hears it.
+
+911 calls arrive on their own through tRadio. Hand the dispatcher anything else the same way; only `message` is required, and it goes out on whichever monitored channel has units:
+
+```lua
+TriggerEvent('tradioai:call', {
+    source   = 'CAD',                -- said on the air as-is
+    caller   = 'Jane Doe',
+    message  = 'structure fire, smoke showing',
+    service  = 'fire',               -- prefers a channel named for it
+    priority = 'priority 1',
+    location = 'Vespucci Boulevard', -- else Config.location
+    coords   = vector3(x, y, z),     -- finds the nearest unit
+})
+```
+
+| Hook | What it does |
+| --- | --- |
+| `Config.unitNote(serverId)` | adds a line beside a roster unit, "on a traffic stop". It is why a busy unit is passed over. Runs once per unit per turn, so read a cached value |
+| `Config.location(coords)` | turns coordinates into an address. FiveM has no server-side street lookup, so without it a call carries none |
+
+`auto911` puts new calls on the air; `answer911` picks them up and talks to the caller first (opt-in, and only while no human dispatcher is signed on).
+
+Other resources read a unit's last status with `exports['tRadioAI']:getUnitStatus(serverId)` and react to `tradioai:unitStatusChanged(serverId, status)`; `exports['tRadioAI']:setUnitStatus(serverId, status)` sets one. `exports['tRadioAI']:refreshTools()` rebuilds the tool list after you change what `Config.tools` returns.
+
+## Connecting a CAD or MDT
+
+Run a supported CAD or MDT and you can skip the hooks above. tRadio detects which one you run and the dispatcher takes the actions it supports. A dash means the system cannot do it, so it is never offered.
+
+<Callout title="Try it on a test server first">
+  Each CAD exposes a different surface, and testing across them is still in progress. Bring it up on a test server before a live shift so you can see which actions your CAD answers. Nothing here can leave a call stuck: if a system refuses an action the dispatcher says so on the air and the transmission continues.
+</Callout>
+
+| | LACORE | SonoranCAD | ImperialCAD | wasabi\_mdt | tk\_mdt | ps-mdt |
+|---|---|---|---|---|---|---|
+| Run a plate | Yes | Yes | Yes | Yes | Flags only | — |
+| Run a name | Yes | — | — | — | Warrants only | — |
+| Open a call | Yes | Yes | Yes | Yes | Yes | Yes |
+| Attach a unit | Yes | Yes | Yes | — | — | — |
+| Clear a unit | Yes | Yes | — | — | — | — |
+| Close a call | Yes | Yes | Yes | — | — | — |
+| Add a note | Yes | Yes | Yes | — | — | — |
+| **Set a unit's status** | Yes | Yes | — | — | — | — |
+| Read your roster | Yes | Yes | Yes | Yes | Yes | — |
+
+- **Status writing is LACORE and SonoranCAD only.** Elsewhere the CAD still learns a unit is on a call when it attaches them.
+- **tk\_mdt reports whether a vehicle is flagged, not who owns it**, so the dispatcher says "nothing circulated on it", never "comes back clear". A name lookup is the same story.
+- **Outside LACORE it can only act on calls it opened itself**, and wasabi\_mdt, tk\_mdt and ps-mdt cannot attach a unit after a call exists.
+- **A status it cannot match confidently is not written at all.** The dispatcher says so on the air, so expect gaps rather than wrong entries. The code sheet closes most.
+
+**Consent is tRadio's `Config.cad.tools`**, the existing "Let tRadio Write to Your CAD" switch. tRadio reports it with the provider's capabilities; when it is off, no CAD tool is offered. There is no second switch in this resource. Results come back reduced to a few fields (a plate is owner, stolen, insured, registration and flags, never the raw record).
+
+With two CADs running it prefers the one that can do more. To decide for it:
+
+```lua
+Config.cad = ''   -- only when two run at once: 'lacore' 'sonoran' 'imperial' 'wasabi' 'tkmdt' 'psmdt'
+```
+
+<Callout type="warning" title="A name that is not running turns the CAD actions off">
+  Name a system that is not started and the dispatcher does **not** fall back to another one. The CAD actions disappear and the console says why. Leave `cad` empty unless you run two at once.
+</Callout>
+
+**Your own hooks win.** `Config.incidents` and `Config.tools` take precedence over the built-in integration for the same action. Credentials stay in the CAD's own resource, so neither tRadio nor this resource sees them. Most systems match a player to a CAD account through Discord, so a player who has not linked Discord has no CAD identity.

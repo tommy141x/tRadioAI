@@ -17,7 +17,7 @@
     "pins:check": "bun run scripts/pins-check.ts",
     "pins:check:control": "bun scripts/controls/pins-check-control.ts",
     "vendor:engine": "bun run scripts/vendor-local-engine.ts",
-    "verify": "bun run lint && bun run typecheck && bun run test && bun run test:lua && bun run test:lua:control && bun run pins:check:control && bun run release:gate:control",
+    "verify": "bun run lint && bun run typecheck && bun run typecheck:scripts && bun run test && bun run test:lua && bun run test:lua:control && bun run pins:check:control && bun run release:gate:control",
     "release:gate:control": "bun scripts/controls/release-gate-control.ts",
     "typecheck:scripts": "tsc --noEmit -p scripts/tsconfig.json",
     "harness": "bun scripts/harness/dispatch-harness.ts",

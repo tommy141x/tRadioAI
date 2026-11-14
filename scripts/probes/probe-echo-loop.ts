@@ -3,7 +3,7 @@
  *
  *   bun run scripts/probe-echo-loop.ts [--model server/models/<file>.gguf]
  *
- * Development only. Written against a live journal (`server/logs/ai-dispatch.jsonl`,
+ * Development only. Written against a live journal (`logs/ai-dispatch.jsonl`,
  * 2026-09-19 21:16Z) in which the reply was pinned to one line across a call-up,
  * a traffic stop and a full vehicle description. It puts those same transmissions
  * to the model, varying one thing at a time, and it settled the question:

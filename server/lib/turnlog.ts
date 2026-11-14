@@ -11,7 +11,7 @@
  *
  *  - **The console**, two lines per turn, so an operator watching the server sees
  *    the exchange as it happens.
- *  - **`server/logs/ai-dispatch.jsonl`**, one object per turn, because reading back a
+ *  - **`logs/ai-dispatch.jsonl`**, one object per turn, because reading back a
  *    session of traffic — transcripts, tool calls, replies, latency — is a
  *    different job from watching one go past, and the console interleaves with
  *    everything else the server is doing.

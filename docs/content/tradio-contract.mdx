@@ -1,0 +1,249 @@
+---
+title: "How tRadioAI talks to tRadio"
+description: "The integration contract between tRadioAI and tRadio: every export and event this add-on calls, with payloads, refusals and the degrade rule. The reference for tRadio's side."
+order: 6
+group: "tRadioAI"
+published: true
+---
+
+tRadioAI is a separate resource. It never reaches into tRadio's internals: everything it hears, says and reads crosses as a Lua **export** or a local server **event**, and every one of them is listed here. The same list, from tRadio's side, is the checklist for implementing the hooks; `server/lib/stub-tradio.ts` in this repository implements all of it and is what the tests run against.
+
+`server/lib/tradio-hooks.ts` is the only file in tRadioAI that knows any of this. If a name or a payload changes, that file and this page change, and nothing else.
+
+## Conventions
+
+- **Exports are called as `exports['tRadio']:name(...)`.** The new ones take and return **JSON strings** (an encoded table), the way tRadio's existing integration exports already cross the boundary. An empty string means "refused or failed".
+- **Exports never throw into the caller.** A refusal is `""`, `false` or `{ "ok": false, "reason": "..." }`. The one thing that does raise is a **missing** export (`No such export <name> in resource tRadio`), which is how an older tRadio is told apart from a refusing one.
+- **Events are local server events**, which any resource can fire. Every event that carries audio or a result is matched against an **unguessable id** that tRadio issued: a tap id, a station id plus request id. tRadio must generate these as 128-bit random tokens. An event without a matching id is dropped.
+- **A resource only gets the powerful hooks if the operator names it.** tRadio's `Config.integrations`, in `config/config.lua`, is a list of resource names and is **empty by default**:
+
+  ```lua
+  Config.integrations = { 'tRadioAI' }
+  ```
+
+  The check is `GetInvokingResource()` against that list. A refused call returns the failure value and logs one `[audit]` line naming the exact line to add. tRadioAI prints the same line on its side the first time, and retries on a 30 second beat, not on every call.
+
+## What tRadioAI needs
+
+| Hook | Kind | Exists today | Needs the integration list |
+| --- | --- | --- | --- |
+| `getAllChannels`, `getChannelInfo`, `getPlayerName`, `getSubscriberInfo` | export | yes | no |
+| `getChannelAlert`, `setAlertOnChannel`, `playToneOnChannel` | export | yes | no |
+| `getAlerts`, `getToneKeys` | export | **add** | no |
+| `getPatches`, `createPatch`, `removePatch` | export | **add** | `createPatch`, `removePatch` |
+| `registerTransmissionTap`, `unregisterTransmissionTap`, event `tradio:tap:transmission` | export, event | **add** | `registerTransmissionTap` |
+| `openStation`, `closeStation`, `stationTransmit`, `getStations`, event `tradio:station:done` | export, event | **add** | all but `getStations` |
+| event `tradio:911:queued` | event | **add** | no |
+| event `tradio:911:ended` | event | yes | no |
+| `answer911`, `end911` | export | **add** | both |
+| `cadDetect`, `cadStatusVocabulary`, `cadLiveCall` | export | yes | no |
+| `cadCapabilities`, `cadOperation`, event `tradio:cad:operationResult` | export, event | **add** | `cadOperation` |
+
+## Reading the radio system
+
+These already exist (`api-reference`); tRadioAI reads only the fields named.
+
+| Export | Used for |
+| --- | --- |
+| `getAllChannels()` | `zoneName`, `name`, `frequency`, `type` (`conventional` or `trunked`) of every channel |
+| `getChannelInfo(frequency)` | `speakers`, `listeners`, `activeTalkers`: server ids on one channel |
+| `getPlayerName(serverId)` | the callsign when callsigns are on, otherwise the player's name |
+| `getSubscriberInfo(serverId)` | `unitId` |
+| `getChannelAlert(frequency)` | `name` of the active alert |
+| `setAlertOnChannel(frequency, enabled, name)` | raise or lift an alert; `true` when something matched |
+| `playToneOnChannel(frequency, tone)` | play a tone |
+
+### `getAlerts() -> json`
+
+`[{ "name": "SIGNAL 100", "toneOnly": false }, ...]`, from `Config.alerts`. tRadioAI builds the alert tool's wording from these names, so a server that renamed an alert gets a dispatcher that knows the new name. Tone-only alerts are returned and flagged: they are a sound, not a state a channel can be put in and lifted from.
+
+### `getToneKeys() -> json`
+
+`["ALERT_A", "PRIORITY", ...]`, the keys of `Config.toneWavMap`, sorted.
+
+### `getPatches() -> json`
+
+`[{ "id": "patch_1a2b3c4d", "label": "FIRE-PD BRIDGE", "frequencies": [154.755, 460.25] }, ...]`
+
+### `createPatch(label, frequenciesJson) -> json`
+
+`label` is at most 40 characters. Success is `{ "ok": true, "id": "patch_..." }`. A refusal is `{ "ok": false, "reason": R, "frequency": F }` where `R` is one of:
+
+| `reason` | Meaning | Extra fields |
+| --- | --- | --- |
+| `direct` | `F` is a direct channel and cannot be patched | `frequency` |
+| `trunked` | `F` is trunked and cannot be patched | `frequency` |
+| `already_patched` | `F` is already in a patch | `frequency`, `label` of that patch |
+| `too_few` | fewer than two frequencies | none |
+| `not_permitted` | the caller is not in `Config.integrations` | none |
+
+A patch made this way is saved the same way the dispatch panel's are (the `tradio:savePatch` path) and broadcast as `patchCreated`.
+
+### `removePatch(id) -> bool`
+
+`false` for an id that does not exist, which is also how the capability probe tests for the hook without side effects.
+
+## Hearing transmissions
+
+### `registerTransmissionTap(optsJson) -> tapId`
+
+`opts = { "frequencies": [154.755, ...] }`. Omitted means every conventional channel. Returns an unguessable id, or `""` when refused. A resource may hold one tap; registering again replaces it. Taps unregister themselves when the registering resource stops.
+
+**A tap also delivers the transmissions on the frequency of any 911 call answered by a station that the same resource opened**, whether or not that frequency is in `frequencies`: a call's frequency is minted at runtime and is in no channel list, and without this the caller's voice is never heard.
+
+A tap never reports audio that originated from a station.
+
+### `unregisterTransmissionTap(tapId) -> bool`
+
+`false` for an unknown id (also the side-effect-free probe).
+
+### event `tradio:tap:transmission(tapId, payload)`
+
+Fired once per ended transmission, after the talker unkeys (or after tRadio's own silence backstop). `payload` is a table or a JSON string:
+
+```json
+{
+  "serverId": 7,
+  "name": "King 41",
+  "frequency": 154.755,
+  "startedAt": 1730000000000,
+  "endedAt": 1730000002100,
+  "codec": "imbe",
+  "container": "wav",
+  "sampleRate": 16000,
+  "audio": "<base64>"
+}
+```
+
+- `container: "wav"` is the vocoded transmission decoded by tRadio to **mono 16-bit PCM at 16000 Hz** in a WAV. The rate is part of the contract: the local transcription engine is started without `--convert` (no ffmpeg on most game panels) and reads exactly that. tRadioAI drops a WAV at any other rate and says so.
+- `container: "webm"` is a stitched Opus WebM, for analog channels, passed through still encoded.
+- `audio` is capped at tRadio's transmission cap (the first 20 seconds of IMBE, the first 60 of analog; a longer one is truncated and still delivered).
+- Secure channels: delivered only if the operator listed the resource in `Config.integrations`, which is the consent. **Open question for tRadio:** whether a tap should skip channels whose transmit mode is `secure` unless named explicitly; the old in-process tap sat before that check and did not look.
+
+## Speaking as a station
+
+A **station** is a named virtual dispatch console. It shows in every unit's list under its name, covers a set of frequencies, and may transmit on them. Station server ids come from the reserved block **-890000 to -890999**; tRadioAI treats ids in that block as consoles and not as people.
+
+### `openStation(optsJson) -> stationId`
+
+`opts = { "name": "Dispatch", "frequencies": [154.755], "answers911": false }`. Returns an unguessable id, or `""` when refused. A station with `answers911: true` counts as dispatcher presence for tRadio's no-dispatcher 911 fallback, so tRadio does not announce "no dispatcher online" for a call the station is about to answer. A resource may hold several stations (tRadioAI keeps one persistent and opens a short-lived one to speak on a channel the persistent one does not cover). Stations close when the resource stops.
+
+### `closeStation(stationId) -> bool`
+
+`false` for an unknown id (also the probe).
+
+### `stationTransmit(stationId, optsJson) -> requestId`
+
+```json
+{ "frequency": 154.755, "container": "pcm16", "sampleRate": 8000, "audio": "<base64>", "maxMs": 20000 }
+```
+
+`pcm16` is little-endian mono 16-bit samples; tRadioAI sends **8000 Hz**, the narrowband rate every vocoded channel runs at, so there is no second conversion. tRadio must:
+
+- encode with the channel's codec (an analog channel keeps getting IMBE, as it always has),
+- pad the encoder delay (the same flush the in-game encoder performs), so the last word is not left inside the vocoder,
+- pace the packets in real time, and broadcast talking state the way a real transmission does,
+- serialise per channel, one voice at a time, with a bounded queue,
+- apply the same per-source voice rate limit and the **20 second cap** as today.
+
+Returns a request id, or `""` when refused outright. The outcome arrives as an event.
+
+### event `tradio:station:done(stationId, requestId, result)`
+
+```json
+{ "ok": true, "reason": "aired", "airedMs": 1000 }
+```
+
+`reason` is one of `aired`, `queue_full`, `too_long`, `no_station`, `not_covered` (the station does not cover that frequency). tRadioAI has no "first packet" event and does not need one; it waits for this, and gives up after the audio's own length plus 60 seconds.
+
+There is no cancel. Aborting a turn stops the wait; audio already handed over airs to its end.
+
+### `getStations() -> json`
+
+```json
+{
+  "stations": [{ "stationId": "...", "name": "Dispatch", "resource": "tRadioAI", "frequencies": [154.755], "answers911": true }],
+  "humans": [{ "serverId": -1001, "selected": 154.755, "listening": [460.25] }]
+}
+```
+
+`humans` is every **human** dispatcher signed on to the dispatch panel (never a station), with the channel they have selected (or `null`) and every channel they are listening to. tRadioAI stands down from a channel a human has selected or is listening to, and stops answering 911 while any human is signed on. It reads this about twice a second and caches it for 400 ms.
+
+## 911
+
+### event `tradio:911:queued(call)`
+
+Fired when a call enters the queue. `call` is a table or JSON string:
+
+```json
+{ "id": "call911_ab12cd34", "callerServerId": 9, "callerName": "Alex Vance", "message": "break in",
+  "frequency": 880.0001, "coords": { "x": 1.0, "y": 2.0, "z": 3.0 } }
+```
+
+`coords` is `null` when unknown. This fires for every queued call, whether or not anything is listening.
+
+### event `tradio:911:ended(callerServerId, reason)`
+
+Exists today. tRadioAI matches the caller to the one call it answered. `reason` is tRadio's own string; tRadioAI reads `caller_offline` and `caller_no_answer` (a call nobody spoke on is not announced on the radio afterwards) and treats every other the same.
+
+### `answer911(stationId, callId) -> json`
+
+`{ "ok": true }` or `{ "ok": false, "reason": R }`. **In this order:** make the station cover the call's frequency, then accept the call as that station (a call whose channel has nobody on it is swept, so accepting first loses it). The station's tap then starts receiving that frequency.
+
+`reason` includes `caller_offline` (the caller's client has no socket yet). tRadioAI retries that one every 100 ms for 10 seconds, because the queue event fires the moment `/911` is handled, seconds before a caller with no radio powered on has connected. Others: `no_station`, `unknown_call`, `not_permitted`.
+
+### `end911(callId) -> bool`
+
+Ends the call with reason `integration_ended` (a new member of the end-reason set; consumers that render unknown reasons as "the call ended" degrade correctly). Fires `tradio:911:ended` as for any other end. `false` for an unknown call (also the probe).
+
+## CAD
+
+The six CAD integrations stay in tRadio. They know each system's exports, identities and status vocabularies, and they reduce every answer to a few fields; tRadioAI never sees a CAD's raw record.
+
+### `cadDetect() -> table`
+
+Exists. `{ [provider] = { writeStatus = bool } }` for each CAD that is running.
+
+### `cadCapabilities(provider) -> json`
+
+`provider` is a provider id, or `""` to let tRadio choose. Returns
+
+```json
+{ "provider": "sonoran", "supports": ["plate", "createCall", "attachUnit"], "consent": true }
+```
+
+`supports` uses the capability names `plate bolo person warrants createCall attachUnit detachUnit closeCall addNote readStatus writeStatus roster`. `consent` is the operator's **`Config.cad.tools`** (the existing "Let tRadio Write to Your CAD" switch). When it is `false`, `supports` is empty: tRadioAI has no second switch for CAD consent, so there is one place to look when a CAD tool is missing. `provider` is `""` when tRadio does not offer that provider to the caller.
+
+### `cadOperation(provider, op, paramsJson, requestId) -> bool`
+
+Starts one operation and answers on an event. Returns `true` when started, `false` when refused (not in `Config.integrations`, or `Config.cad.tools` is `false` for a write). `op` is a capability name; `params` fields are `serverId`, `plate`, `name`, `about`, `ref`, `closeRef`, `note`, `status`. A provider that needs a `ref` and is not given one answers `absent`. For `writeStatus`, `status` is **one of the CAD's own status names** (see `cadStatusVocabulary`); tRadioAI has already mapped the unit's words and the operator's code sheet onto it, so tRadio's provider matches the name exactly and does no ten-code mapping of its own.
+
+### event `tradio:cad:operationResult(requestId, result)`
+
+```json
+{ "kind": "ok", "ok": true, "status": null, "body": { "ref": "4411" } }
+```
+
+`kind` is `ok`, `transient` (try later: the dispatcher says "stand by"), `quota`, `absent`, `error`, `threw`, `off` or `unsupported`. `body` is the **reduced** record: `CadPlate` (`plate`, `owner`, `stolen`, `insured`, `registration`, `flags`), `CadPerson` (`name`, `matches`, `flags`), `CadCall` (`ref`, `closeRef`), `{ "warrants": bool }`. Exactly one event per request id. tRadioAI times a request out at 6 seconds (15 for the slow providers) and treats a late answer as nothing.
+
+### `cadStatusVocabulary(provider) -> table` and `cadLiveCall(provider, serverId) -> table|nil`
+
+Exist. `cadLiveCall` answers `{ ref }` for LACORE and `nil` for every other provider.
+
+<Callout type="info" title="Where this differs from the extraction plan">
+  The plan described `cadRequest(provider, op, payload, requestId)` answering on `tradio:cad:result`. That export exists and answers with each provider's **raw** body, which only the TypeScript providers inside tRadio know how to read. Giving a separate resource that would mean carrying six providers' parsing, so tRadioAI uses a reduced-result operation instead (`cadOperation`). It is a thin wrapper over the provider objects tRadio already has.
+</Callout>
+
+## Degrade rule
+
+On start, when tRadio starts or stops, and every 30 seconds while idle, tRadioAI probes. It calls the read-only exports and the **inverse** of each write-ish export with an id that cannot exist (`unregisterTransmissionTap("probe")`, `closeStation("probe")`, `end911("probe")`, `removePatch("probe")`), which return `false` and change nothing. That is why those four must exist and be side-effect free.
+
+| tRadio | tRadioAI does |
+| --- | --- |
+| not installed | idles; one line: tRadio is not installed |
+| installed, not started | idles; starts working when tRadio starts |
+| lacks the read, tap or station hooks | idles; one line naming the missing exports and saying the tRadio is too old. It **never falls back to Socket.IO**, which would need an IMBE decoder and encoder |
+| lacks the 911 hooks | hears and speaks, does not take or end 911 calls |
+| lacks alerts or patches | the alert, tone and patch tools are not offered |
+| lacks the CAD hooks, or `Config.cad.tools = false` | no CAD tools are offered |
+| refuses (not in `Config.integrations`) | one line with the exact line to add; retries every 30 seconds |

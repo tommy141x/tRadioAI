@@ -10,7 +10,7 @@ server/models/*.gguf
 server/models/*.bin
 server/models/voices/*.onnx
 server/models/validation.json
-server/logs/
+logs/
 
 # Runtime state
 *.log

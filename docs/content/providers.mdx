@@ -1,0 +1,80 @@
+---
+title: "Providers"
+description: "Which provider serves which capability, what each one needs, and what leaves your server."
+order: 2
+group: "tRadioAI"
+published: true
+---
+
+Three capabilities, resolved independently. Hearing a unit (`transcription`), deciding what to do and writing the reply (`text`), and saying it (`speech`). The default for all three is the [local engine](/docs/tRadioAI/local-engine); a hosted provider is an opt-in per capability and never a silent one.
+
+| Capability | Serves | Providers |
+| --- | --- | --- |
+| `text` | decides and writes the reply | `local`, `openai`, `openrouter`, `groq`, `vercel` |
+| `speech` | says it | `local`, `openai`, `groq`, `elevenlabs` |
+| `transcription` | hears the unit | `local`, `openai`, `groq` |
+
+Ask a provider for a capability it does not serve and that capability falls back to local, with a named reason in the console. Two worth knowing:
+
+- **Vercel AI Gateway serves text only.** Its audio lives on a different API version with a different protocol (`/v4/ai/speech-model`, a model in a header, JSON with base64 audio back). Asking it for speech used to fail every turn with `404 Invalid URL (POST /v1/audio/speech)`; it now resolves to local at start and says why.
+- **ElevenLabs serves speech only.**
+
+## Per capability
+
+```lua
+Config.providers = {
+    text          = { provider = 'groq',       model = 'llama-3.3-70b-versatile' },
+    speech        = { provider = 'elevenlabs', model = 'eleven_turbo_v2_5' },
+    transcription = { provider = 'openai',     model = 'whisper-1' },
+}
+```
+
+| Field | |
+| --- | --- |
+| `provider` | one of the ids above. Omit the capability for local |
+| `model` | the provider's model id. **Required for every hosted provider except ElevenLabs**, which picks its own when none is named |
+| `baseUrl` | optional. A compatible proxy or self-hosted gateway under that provider's name |
+
+A hosted provider with **no model** is refused at start, not at the first transmission. OpenAI answers a request with no model with `400 you must provide a model parameter`, which on every turn is the worst moment to find out. `tradioai_models <provider>` lists the ids a provider accepts.
+
+A hosted provider with **no key** falls back to local and names the convar (`tradioai_openai_key`). Whichever problem is first is the one reported.
+
+## Voices
+
+Changing the speech provider usually means changing the voices:
+
+| Serving speech | A voice is |
+| --- | --- |
+| `local` | a Piper file name, e.g. `en_US-amy-medium` |
+| `openai` | a voice name, e.g. `alloy`, `nova` |
+| `groq` | the model's voice name |
+| `elevenlabs` | a voice **ID**, e.g. `21m00Tcm4TlvDq8ikWAM`, not a display name |
+
+```lua
+Config.voices = { male = { 'alloy' }, female = { 'nova' } }
+```
+
+Only the first voice for the configured `voiceGender` is used; the dispatcher is one person.
+
+## What leaves your server
+
+<Callout type="warning" title="Audio only leaves your server if you send it">
+  Set `transcription` to a hosted provider and **every transmission on a monitored channel** is uploaded to it as audio. Set `text` and the **transcripts** (and the roster, recent traffic and tool results the model is shown) follow. Set `speech` and the **reply text** goes. Channels you did not list are never heard and never leave.
+</Callout>
+
+| You host | The provider receives |
+| --- | --- |
+| `transcription` | the audio of each monitored transmission, plus a short vocabulary hint (wake phrases and the callsigns on the channel) |
+| `text` | transcripts, callsigns, unit ids and statuses, recent traffic, channel names and tool results |
+| `speech` | the sentence the dispatcher is about to say |
+| nothing (all local) | nothing; no network call is made |
+
+## Spend controls
+
+- `turnCooldownMs` (default 3000) answers any one unit at most once per cooldown. It is the one control that is on by default, because it limits a talker and cannot take the channel down.
+- `hostedCallsPerMinute` (default 0, no ceiling) caps hosted calls across all three capabilities. Over the ceiling a turn is served by the local engine instead, which is the same fallback a missing key takes. It counts calls, not turns: one turn spends transcription, text and speech, so a per-turn number would understate the bill about three times.
+- `turnTimeoutMs` (default 30000, 2000 to 60000) abandons a turn that has not finished thinking. Time spent actually speaking is not counted against it.
+
+## Changing settings
+
+Settings are read once, when the resource starts. Change `config.lua` and `restart tRadioAI`.

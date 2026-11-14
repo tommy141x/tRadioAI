@@ -1,0 +1,75 @@
+---
+title: "Troubleshooting"
+description: "What each console line means and what to change, starting from the failures operators have actually reported."
+order: 4
+group: "tRadioAI"
+published: true
+---
+
+Start with `tradioai_status` in the server console. It names whether tRadio is found, what it offers, which engine serves each capability and whether each key is set, which answers most of this page.
+
+## It does nothing
+
+| Console says | Cause | Fix |
+| --- | --- | --- |
+| `tRadioAI is idle: tRadio is not installed on this server` | tRadio is not in `resources` | install tRadio, then start tRadioAI after it |
+| `... tRadio is not running` | tRadio stopped or failed | start tRadio; tRadioAI starts working as soon as it does |
+| `... this tRadio is too old for tRadioAI: it lacks the tap and station integration hooks (unregisterTransmissionTap, ...)` | tRadio predates the hooks | update tRadio. tRadioAI does not fall back to the Socket.IO API |
+| `tRadio refused registerTransmissionTap. Add this line to tRadio's config/config.lua ... Config.integrations = { 'tRadioAI' }` | tRadio does not know this resource | add that exact line to **tRadio's** `config/config.lua` and restart tRadio. It retries every 30 seconds |
+| nothing at all | `Config.enabled = false`, or `Config.channels` is empty | set both. A unit also has to be on a listed channel and say the wake phrase, or open with its own callsign |
+
+A unit that keys up and is not answered is logged either way:
+
+```
+turn: K31 on PD-1 (850) said "k31 to k32 you on?" — not addressed to dispatch
+```
+
+That line tells a missed wake phrase from unit-to-unit talk.
+
+## Hosted providers
+
+Each of these was a real report. The console names the provider and the HTTP status.
+
+| You see | Why | What to do |
+| --- | --- | --- |
+| `config: text: local — openai needs a model for text; set providers.text.model in config.lua` | you named a hosted provider and no model. OpenAI answers that with `HTTP 400 — you must provide a model parameter` | set `model`. `tradioai_models openai` lists the ids. tRadioAI refuses the empty model at start so it never reaches the provider |
+| `config: ... needs an API key and none is set in tradioai_openai_key` | no key | `set tradioai_openai_key "..."` in `server.cfg`, restart. A key in `config.lua` is ignored |
+| `speech failed: HTTP 400 — ... invalid_response_format ... must be one of [wav]` | Groq's Orpheus speech endpoint only returns WAV | tRadioAI asks Groq for `wav` already; if you still see it you are using a `baseUrl` proxy that rewrites the request |
+| `decision failed: HTTP 400 — ... json_validate_failed` | Groq validates the whole completion when asked for a JSON object, and discards a reply that has a reasoning preamble | tRadioAI does not send `response_format` to Groq. Seeing it means a proxy added one |
+| `speech failed: HTTP 404 — Invalid URL (POST /v1/audio/speech)` | the Vercel AI Gateway has no OpenAI-style audio route | Vercel serves **text** only here; the capability resolves to local at start. Pick `openai`, `groq` or `elevenlabs` for speech |
+| `HTTP 401` | the key was refused: wrong, revoked or lacking permission | rotate the key in `server.cfg` |
+| `turn: abandoned on 850 — timed out after 30000ms` | the provider or the local engine did not answer inside `turnTimeoutMs` | a hosted outage, or a local engine on an overloaded box. Move that capability hosted, or raise `turnTimeoutMs` (limit 60000). The turn is abandoned, not queued |
+| `HTTP 502` followed by HTML | a proxy or gateway in front of the provider | the first 300 characters of the page are logged; fix the proxy |
+
+### It decided and never spoke
+
+```
+hold "King 41, stand by" not said — nobody waiting and the gap was short
+skipped: could not air the go-ahead
+```
+
+The first is deliberate: "stand by" is only said when somebody is waiting or the gap is long, because a hold on every turn is a tell and costs airtime. The second means the reply was spoken into tRadio and tRadio did not air it: read the line above it (`... not aired — queue_full` is a busy channel; `not_covered` means the station left that channel because a human dispatcher is on it; `refused` is the `Config.integrations` line again; `timeout` means tRadio never reported the transmission finished).
+
+## 911
+
+| You see | Cause |
+| --- | --- |
+| calls are never picked up | `Config.answer911` is `false` (the default), a human dispatcher is signed on, or tRadio lacks the 911 hooks (`tradioai_status` shows `911 no`) |
+| `call: ... left in the queue — no station is open to answer from` | the station is closed: tRadio refused it, or the dispatcher is disabled |
+| `call: ... not answered — caller_offline` | the caller's client never connected inside 10 seconds. The call stays queued for a human |
+| the greeting never airs | the caller never joined the call's frequency within 6 seconds. tRadio's own 20 second answer watchdog ends the call |
+
+## The local engine
+
+| You see | Cause | Fix |
+| --- | --- | --- |
+| `The AI dispatcher is waiting on model files: 9 artifact(s), 2.5 GB. Nothing has been downloaded.` | the local engine is selected and its files are not there | run `tradioai_download`, or use a hosted provider for `text` |
+| `turn: abandoned on 850 — transcription is unavailable: local transcription engine stopped while loading` | the engine exited during startup. The console prints its last stderr lines and exit code | read them. Common: a glibc older than 2.34, too little RAM, a model file that is truncated (delete it and run `tradioai_download`) |
+| `the API is restricted` / the engine never starts | no `add_unsafe_child_process_permission tLib` line | add it and restart the server (FXServer reads it at boot) |
+| `the launcher refused llama-server` | tLib has no catalogue entry for this resource, or the binary is not under the resource folder | update tLib to a version that lists tRadioAI; check `localEngine.root` (the console warns about a root outside the resource) |
+| `No such file or directory` naming a binary | a musl host (Alpine) or the wrong architecture | see [The local engine](/docs/tRadioAI/local-engine#platforms-it-does-not-cover) |
+| a download fails with `404` | upstream deleted that build | the pin has to be updated in a tRadioAI release. Use a hosted provider for that capability until then |
+
+## Reading the turn log
+
+`logs/ai-dispatch.jsonl` has one JSON object per turn: the transcript, the roster the model was shown, the tool calls and results, the drafted reply, the aired reply and a stage timing for each of transcription, decision and speech. It rolls over at 4 MB. When answers are odd rather than absent, start with whether the draft differs from what aired.
