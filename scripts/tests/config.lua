@@ -128,4 +128,35 @@ local _, knownSaid = load({
 })
 neg(not knownSaid:find('does not read', 1, true), 'a config made only of known keys, hooks included, says nothing')
 
+-- ── tradioai_reload ─────────────────────────────────────────────────────────
+-- The command re-reads both config files and pushes again, with no restart.
+load({ enabled = false })
+local reloadCmd = host.commands['tradioai_reload']
+check(type(reloadCmd) == 'function', 'tradioai_reload is registered')
+
+local function reloaded(configSource, functionsSource, from)
+    host.files['config/config.lua'] = configSource
+    host.files['config/sv_functions.lua'] = functionsSource
+    host.fired = {}
+    reloadCmd(from or 0)
+    local pushed = host.firedEvents('tradioai:config')
+    return pushed[#pushed] and pushed[#pushed].args[1] or nil
+end
+
+local after = reloaded('Config = { enabled = true, channels = { 154.755 } }',
+    "Config.instructions = function() return 'x' end")
+check(after ~= nil and after.enabled == true and after.channels[1] == 154.755, 'a reload pushes the edited config')
+check(type(Config.instructions) == 'function', 'and runs sv_functions.lua after config.lua')
+
+_G.Config = { enabled = true, kept = true }
+neg(reloaded(CONTROL and 'Config = { kept = true }' or 'Config = { enabled = ', '') == nil,
+    'a syntax error pushes nothing')
+neg(Config.kept == true and Config.enabled == true, 'and leaves the running config as it was')
+_G.Config = { enabled = true, kept = true }
+neg(reloaded('Config = { enabled = false }', CONTROL and '' or "error('boom')") == nil,
+    'a runtime error in sv_functions.lua pushes nothing')
+neg(Config.kept == true, 'and restores the config it replaced')
+_G.Config = { enabled = true, kept = true }
+neg(reloaded('Config = { enabled = false }', '', CONTROL and 0 or 5) == nil, 'a player cannot run it')
+
 H.finish('config.lua', 'CONFIG_CONTROL')

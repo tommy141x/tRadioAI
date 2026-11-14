@@ -95,6 +95,11 @@ function H.host()
         }),
     }
 
+    host.commands = {}
+    host.files = {}
+    _G.RegisterCommand = function(name, fn) host.commands[name] = fn end
+    _G.LoadResourceFile = function(_, file) return host.files[file] end
+
     _G.AddEventHandler = function(name, fn)
         host.handlers[name] = host.handlers[name] or {}
         table.insert(host.handlers[name], fn)

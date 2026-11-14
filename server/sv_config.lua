@@ -103,3 +103,47 @@ AddEventHandler('tradioai:nodeReady', function()
     checkKeysNotInConfig()
     TriggerEvent('tradioai:config', payload())
 end)
+
+-- Both files are compiled before either runs, so a syntax error leaves the running
+-- config untouched rather than half replaced.
+local CONFIG_FILES = { 'config/config.lua', 'config/sv_functions.lua' }
+
+local function reload()
+    local resource = GetCurrentResourceName()
+    local chunks = {}
+    for _, file in ipairs(CONFIG_FILES) do
+        local source = LoadResourceFile(resource, file)
+        if not source then
+            warn('reload: ' .. file .. ' is missing; nothing was changed')
+            return false
+        end
+        local chunk, err = load(source, '@' .. resource .. '/' .. file)
+        if not chunk then
+            warn('reload: ' .. tostring(err) .. '; nothing was changed')
+            return false
+        end
+        chunks[#chunks + 1] = chunk
+    end
+
+    local previous = Config
+    for i, chunk in ipairs(chunks) do
+        local ok, err = pcall(chunk)
+        if not ok then
+            Config = previous
+            warn('reload: ' .. CONFIG_FILES[i] .. ' failed -- ' .. tostring(err) .. '; nothing was changed')
+            return false
+        end
+    end
+
+    -- The same event the bundle raises at start: sv_tools.lua rebuilds the tool registry
+    -- and the handler above pushes the new payload.
+    TriggerEvent('tradioai:nodeReady')
+    print('[tRadioAI] config reloaded')
+    return true
+end
+
+-- Console only: a player must not be able to re-read the server's config.
+RegisterCommand('tradioai_reload', function(source)
+    if source ~= 0 then return end
+    reload()
+end, true)
