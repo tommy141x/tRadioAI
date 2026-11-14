@@ -2,9 +2,8 @@
  * Unpack a pinned engine archive, in-process.
  *
  * The local inference engines are published by their upstreams as 3 zip and 3
- * tar.gz, and nothing is mirrored — TIMMYG Studios infrastructure serves the
- * marketplace and update checks, not third-party bytes. So the resource fetches
- * the upstream archive and has to open it itself.
+ * tar.gz, and nothing is mirrored: this project does not host third-party bytes.
+ * So the resource fetches the upstream archive and has to open it itself.
  *
  * ## Why this is not a spawn of `tar`
  *

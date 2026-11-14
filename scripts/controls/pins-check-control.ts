@@ -76,8 +76,8 @@ try {
     );
   }
   const hosts = new Set(real.map((p) => new URL(p.url).host));
-  // Tommy's rule: third-party bytes come from upstream, never a TG mirror. A
-  // timmygstudios.com host appearing here is that decision being reversed by
+  // The rule: third-party bytes come from upstream, never a mirror hosted by this
+  // project. A timmygstudios host appearing here is that decision being reversed by
   // accident, and this is the only place that would notice.
   const ours = [...hosts].filter((h) => h.includes("timmygstudios"));
   if (ours.length === 0) {

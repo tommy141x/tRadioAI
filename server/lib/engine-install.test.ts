@@ -55,8 +55,8 @@ describe("the shipped lockfile", () => {
   });
 
   test("every pin is upstream — nothing is served from our own infrastructure", () => {
-    // Tommy's rule, asserted where it would be broken: TG infra is for the
-    // marketplace and update checks, and third-party bytes come from upstream.
+    // Asserted where it would be broken: third-party bytes come from upstream, never
+    // from a mirror this project hosts.
     for (const a of readArchives(REPO)) {
       expect(new URL(a.url).host).toBe("github.com");
     }

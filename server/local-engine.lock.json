@@ -1,5 +1,5 @@
 {
-  "_comment": "Pinned upstream inputs. Nothing is mirrored: TIMMYG Studios infrastructure serves the marketplace and update checks, and third-party bytes come from their real upstream. Read by scripts/vendor-local-engine.ts (release preparation), by server/lib/ai/model-integrity.ts and weights.ts (the runtime weight fetch), by server/lib/ai/engine-install.ts (the runtime engine fetch) and by scripts/pins-check.ts (the scheduled liveness gate). Every entry is verified against its sha256 before it is used; a mismatch aborts rather than installs.",
+  "_comment": "Pinned upstream inputs. Nothing is mirrored: third-party bytes come from their real upstream. Read by scripts/vendor-local-engine.ts (release preparation), by server/lib/model-integrity.ts and weights.ts (the runtime weight fetch), by server/lib/engine-install.ts (the runtime engine fetch) and by scripts/pins-check.ts (the scheduled liveness gate). Every entry is verified against its sha256 before it is used; a mismatch aborts rather than installs.",
   "archives": [
     {
       "id": "llama-win",

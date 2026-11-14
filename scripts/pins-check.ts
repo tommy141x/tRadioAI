@@ -6,8 +6,8 @@
  *
  * Every entry in `local-engine.lock.json` is a third-party URL — six engine
  * archives on github.com, six model weights on huggingface.co. Nothing is
- * mirrored, by decision: TIMMYG Studios infrastructure serves the marketplace
- * and update checks, and nothing else. Upstream is the artifact's real home.
+ * mirrored, by decision: this project hosts no third-party bytes. Upstream is the
+ * artifact's real home.
  *
  * The cost of that decision is the one thing this gate covers. **Upstream can
  * delete a release asset.** llama.cpp cuts several builds a day and does prune

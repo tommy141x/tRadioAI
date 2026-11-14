@@ -10,9 +10,8 @@
  *
  * ## Where the bytes come from
  *
- * Upstream, and only upstream. Nothing is mirrored on TIMMYG Studios
- * infrastructure — that serves the marketplace and update checks, and nothing
- * else. The six archives have always been pinned to upstream github.com URLs in
+ * Upstream, and only upstream. Nothing is mirrored by this project. The six
+ * archives are pinned to upstream github.com URLs in
  * `local-engine.lock.json`; what changes here is WHEN they are fetched, not
  * from where. `scripts/vendor-local-engine.ts` still does it at release time
  * for a development tree, from the same pins.
