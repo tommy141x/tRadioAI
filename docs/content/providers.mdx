@@ -77,4 +77,4 @@ Only the first voice for the configured `voiceGender` is used; the dispatcher is
 
 ## Changing settings
 
-Settings are read once, when the resource starts. Change `config.lua` and `restart tRadioAI`.
+Run `tradioai_reload` in the server console after editing `config.lua` or `sv_functions.lua`. Both files are re-read and applied without a restart; a file with an error changes nothing and the console names the error. `restart tRadioAI` also works.

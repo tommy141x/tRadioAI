@@ -12,8 +12,8 @@ A unit says "Dispatch, 1-Adam-12, I'll be 10-8" and gets an answer on the same c
 
 | | |
 | --- | --- |
-| tRadio | a version that lists the **integration hooks** in its changelog. An older tRadio is detected and tRadioAI stays idle, naming what is missing |
-| tLib | 1.2.0 or newer (`tlib_min_version` in the manifest), started before both |
+| tRadio | 7.2 or newer. An older tRadio is detected and tRadioAI stays idle, naming what is missing |
+| tLib | 1.2 or newer, started before both |
 | Server | FXServer on Windows or Linux, OneSync (unit positions are read server-side) |
 | Hosted providers | an API key per provider you use, nothing else |
 | Local engine | optional; see [The local engine](/docs/tRadioAI/local-engine) |
@@ -61,7 +61,7 @@ Check that a key is read with `tradioai_status` in the server console. It report
 
 ## Configure
 
-Edit `config/config.lua`. **That file ships with the release and is overwritten when you update**, so keep your own copy of your values and merge forward; the release notes list any key that was added.
+Edit `config/config.lua`, then run `tradioai_reload` in the server console to apply it. **That file ships with the release and is overwritten when you update**, so keep your own copy of your values and merge forward; the release notes list any key that was added.
 
 Minimum to switch it on:
 

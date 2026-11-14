@@ -3,6 +3,8 @@
 -- This file ships with the release and is OVERWRITTEN when you update. Keep a copy of
 -- your own values and merge forward; the release notes list any key that was added.
 --
+-- After editing, run `tradioai_reload` in the server console to apply it.
+--
 -- API keys are NOT in this file. They are `server.cfg` convars, because this file is
 -- the one that gets pasted into support threads:
 --

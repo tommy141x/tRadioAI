@@ -14,7 +14,8 @@ Start with `tradioai_status` in the server console. It names whether tRadio is f
 | --- | --- | --- |
 | `tRadioAI is idle: tRadio is not installed on this server` | tRadio is not in `resources` | install tRadio, then start tRadioAI after it |
 | `... tRadio is not running` | tRadio stopped or failed | start tRadio; tRadioAI starts working as soon as it does |
-| `... this tRadio is too old for tRadioAI: it lacks the tap and station integration hooks (unregisterTransmissionTap, ...)` | tRadio predates the hooks | update tRadio. tRadioAI does not fall back to the Socket.IO API |
+| `... this tRadio is too old for tRadioAI: it lacks the tap and station integration hooks (unregisterTransmissionTap, ...)` | tRadio predates the hooks | update tRadio to 7.2 or newer |
+| the refusal line keeps appearing although tRadio already lists `tRadioAI` | tRadio could not tell which resource called it | check the name matches the resource folder exactly, restart tRadio, and if it persists open an issue with both resources' console lines |
 | `tRadio refused registerTransmissionTap. Add this line to tRadio's config/config.lua ... Config.integrations = { 'tRadioAI' }` | tRadio does not know this resource | add that exact line to **tRadio's** `config/config.lua` and restart tRadio. It retries every 30 seconds |
 | nothing at all | `Config.enabled = false`, or `Config.channels` is empty | set both. A unit also has to be on a listed channel and say the wake phrase, or open with its own callsign |
 

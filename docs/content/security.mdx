@@ -18,14 +18,14 @@ No resource hears anything until the operator names it. tRadioAI cannot edit tha
 
 ## No net events
 
-tRadioAI registers no network event of its own. Everything crosses as a Lua export or a **local** server event, so there is no client-reachable entry point and no `source` to forget to check. The events it does listen for (`tradio:tap:transmission`, `tradio:station:done`, `tradio:cad:operationResult`, `tradio:911:queued`, `tradio:911:ended`) can be fired by any resource, so each one that carries audio or a result is matched against an unguessable id that tRadio issued (a tap id, a station and request id, a CAD request id) and is dropped otherwise. A resource that fires a fake transmission without the id is ignored; tests pin this for the tap, the station result and the CAD result.
+tRadioAI registers no network event of its own. Everything crosses as a Lua export or a **local** server event, so there is no client-reachable entry point and no `source` to forget to check. The events it does listen for (`tradio:tap:transmission`, `tradio:station:done`, `tradio:cad:operationResult`, `tradio:911:queued`, `tradio:911:ended`) can be fired by any resource, so each one that carries audio or a result is matched against an unguessable id that tRadio issued (a tap id, a station and request id, a CAD request id) and is dropped otherwise. A resource that fires a fake transmission without the id is ignored.
 
 `tradio:911:queued` and the `tradioai:call` event that hands the dispatcher a call carry no secret, because there is nothing to protect: a fake call makes the dispatcher put a sentence on the air, which is what the event is for. `answer911` and `end911` are verified by tRadio against its own queue.
 
 ## Keys
 
 - Provider keys are `server.cfg` convars (`tradioai_<provider>_key`), read **at the moment of use** and never stored in the config object, so a key never sits in something that gets logged or passed over an event.
-- A key typed into `config.lua` is **ignored and dropped before the payload is built**, so it does not travel in the config event; the console names the offending field without printing its value. A negative control proves the assertion can fail.
+- A key typed into `config.lua` is **ignored and dropped before the payload is built**, so it does not travel in the config event; the console names the offending field without printing its value.
 - `tradioai_status` prints each key as `set` or `not set`. No length, no prefix, no suffix.
 - The convar is read by the resource itself. Convars are visible to anyone with console or `server.cfg` access, which is the standard FiveM place for a secret; if that is not enough for your threat model, use a hosted provider's own restricted keys and rotate them.
 - The release zip is checked for key-shaped strings (`sk-`, `gsk_`, `xi-`, private-key blocks) before it is built, and for model weights, engine binaries and archives.

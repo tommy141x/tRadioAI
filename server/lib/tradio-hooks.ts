@@ -247,8 +247,7 @@ export function idleReason(capabilities: Capabilities): string {
   const lacking = required.filter((key) => !capabilities[key]);
   return (
     `this tRadio is too old for tRadioAI: it lacks the ${lacking.join(" and ")} integration hooks ` +
-    `(${capabilities.missing.join(", ")}). Update tRadio to a version that lists "integration hooks" ` +
-    "in its changelog."
+    `(${capabilities.missing.join(", ")}). Update tRadio to 7.2 or newer.`
   );
 }
 

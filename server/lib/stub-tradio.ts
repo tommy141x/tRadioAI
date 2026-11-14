@@ -5,7 +5,7 @@
  * It exists for two reasons. The tests need a tRadio to call, and writing a fresh
  * ad-hoc stub per suite is how contracts drift: every suite ends up agreeing with
  * itself. And tRadio's own maintainers have a runnable statement of what this addon
- * expects, which is the checklist `docs/design/AD-2-contract.md` is derived from.
+ * expects, alongside `docs/content/tradio-contract.mdx`.
  *
  * Not a test file: bun's runner only collects `*.test.ts`.
  *
