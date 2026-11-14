@@ -5,6 +5,9 @@
   "private": true,
   "description": "tRadioAI: an AI dispatcher add-on for tRadio on FiveM",
   "scripts": {
+    "secrets:check": "bun run ../tLib/scripts/secret-gate.ts",
+    "secrets:install-hooks": "bun run ../tLib/scripts/secret-gate.ts --install-hooks",
+    "secrets:check-hooks": "bun run ../tLib/scripts/secret-gate.ts --check-hooks",
     "build": "bun run scripts/build.ts",
     "prod": "bun run scripts/prod.ts",
     "test": "bun test",
