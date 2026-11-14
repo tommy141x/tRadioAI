@@ -1,0 +1,56 @@
+name: Release
+
+# Pushing a tag `v<version>` builds the zip and attaches it to a GitHub release. The tag
+# must match the version in fxmanifest.lua, or the zip would say one thing and the release
+# another. The zip is plaintext source plus the bundled server script: no escrow, no engine
+# binaries and no model weights (scripts/release-gate.ts refuses all three).
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: The tag matches the manifest
+        run: |
+          version="$(sed -n "s/^version '\(.*\)'/\1/p" fxmanifest.lua)"
+          if [ "v${version}" != "${GITHUB_REF_NAME}" ]; then
+            echo "tag ${GITHUB_REF_NAME} does not match fxmanifest.lua version ${version}" >&2
+            exit 1
+          fi
+
+      - name: Verify
+        run: |
+          bun run lint
+          bun run typecheck
+          bun run test
+          bun run test:lua
+          bun run test:lua:control
+          bun run release:gate:control
+
+      - name: Build the release zip
+        run: bun run prod
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist-release/tRadioAI-*.zip
+          generate_release_notes: true

@@ -1,0 +1,58 @@
+name: CI
+
+# Everything here is offline: the unit and contract tests run against a local mock server
+# and a stand-in for tRadio, the Lua suites run on Fengari, and no step downloads an
+# engine or a model. The one network check (are the pinned upstream engines still
+# fetchable) is its own scheduled workflow, pins.yml, because its result changes without
+# anybody touching this repository.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # --frozen-lockfile: fail on a lockfile that disagrees with package.json rather than
+      # quietly resolving something different from what a developer ran.
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Tests
+        run: bun run test
+
+      - name: Lua suites
+        run: bun run test:lua
+
+      # Each of these proves a gate can fail: a suite or gate that passes on input it must
+      # refuse is measuring nothing.
+      - name: Lua gate controls
+        run: bun run test:lua:control
+
+      - name: Pins checker control
+        run: bun run pins:check:control
+
+      - name: Release gate control
+        run: bun run release:gate:control
+
+      - name: Build
+        run: bun run build

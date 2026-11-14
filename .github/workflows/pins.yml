@@ -1,0 +1,40 @@
+name: Upstream pins
+
+# Are the pinned third-party artifacts still fetchable?
+#
+# The local engine downloads llama.cpp, whisper.cpp, Piper and their model weights from
+# their own upstreams at first start, sha256-checked, and nothing is mirrored here. The
+# accepted cost is that upstream may delete a release asset (llama.cpp cuts several builds
+# a day and does prune old ones). This job is how it is the maintainer who finds out, and
+# not an operator whose first start fails.
+#
+# SCHEDULED, not push-triggered: the subject is somebody else's server, so the result
+# changes without anyone touching this repository, and a push cannot break it. It
+# downloads nothing: HEAD requests only, and a failure names the dead pin. The fix is
+# bumping url AND sha256 in server/local-engine.lock.json, never mirroring the artifact.
+
+on:
+  schedule:
+    # Mondays 09:00 UTC. Upstream pruning blocks the NEXT release rather than causing an
+    # outage, so a week's notice is ample.
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+jobs:
+  pins:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # No `bun install`: the checker reads one JSON file and calls `fetch`, so a broken
+      # lockfile here cannot turn a report about upstream into a report about us.
+      - name: Pinned upstream artifacts still resolve
+        run: bun run pins:check
