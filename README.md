@@ -83,6 +83,8 @@ bun run prod          the release zip, with the release gate (no weights, binari
 bun run harness       the offline scenario harness (needs a local engine or a hosted key)
 ```
 
+The harness and probes start the real tLib spawn broker, so they need a tLib checkout beside this repository (`../tLib`); nothing else here does.
+
 Lua has no native interpreter here; the suites in `scripts/tests` run on Fengari, and `scripts/lua-syntax.test.ts` parses every shipped Lua file. Lua that touches the game or tLib at runtime (`sv_version.lua`, the real export surface) is checked statically only. The tRadio side is exercised against `server/lib/stub-tradio.ts`, which implements the contract.
 
 ## License
