@@ -7,7 +7,7 @@ game 'gta5'
 name 'tRadioAI'
 description 'An AI dispatcher for tRadio'
 author 'Tommy Johnston'
-version '0.1.0'
+version '0.1.1'
 license 'MIT'
 repository 'https://github.com/tommy141x/tRadioAI'
 
