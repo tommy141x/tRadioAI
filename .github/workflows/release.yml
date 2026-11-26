@@ -45,6 +45,8 @@ jobs:
           bun run test:lua
           bun run test:lua:control
           bun run release:gate:control
+          bun run notices:check
+          bun run notices:check:control
 
       - name: Build the release zip
         run: bun run prod

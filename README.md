@@ -141,3 +141,5 @@ Tests run against `server/lib/stub-tradio.ts`, an implementation of the tRadio c
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+`server/dist/bundle.js` has two npm dependencies compiled into it, both MIT. Their licence texts are reproduced in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt), which ships in the zip beside the bundle; `bun run notices:gen` regenerates it from the bundler's own module graph.

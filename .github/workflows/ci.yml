@@ -57,5 +57,14 @@ jobs:
       - name: Release gate control
         run: bun run release:gate:control
 
+      # The attribution the bundled dependencies' licences require. Checked against the
+      # bundler's own module graph, so a dependency added without regenerating the
+      # document fails here rather than shipping unattributed.
+      - name: Third-party notices
+        run: bun run notices:check
+
+      - name: Third-party notices control
+        run: bun run notices:check:control
+
       - name: Build
         run: bun run build

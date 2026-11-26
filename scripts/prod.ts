@@ -36,6 +36,7 @@ const stage = join(out, "tRadioAI");
 const SHIPPED = [
   "fxmanifest.lua",
   "LICENSE",
+  "THIRD-PARTY-NOTICES.txt",
   "README.md",
   "config",
   "server/sv_config.lua",
