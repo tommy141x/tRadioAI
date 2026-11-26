@@ -193,7 +193,7 @@ ${label}  (${total} transmissions)`);
   return { total, acks: acks.length, bare };
 }
 
-// ── the reference ────────────────────────────────────────────────────────────
+// the reference
 const refBody = readFileSync(REFERENCE, "utf8")
   .split(/\r?\n/)
   .filter((line) => !/^[\d.]+\s*-\s*[\d.]+$/.test(line.trim()))
@@ -203,7 +203,7 @@ const refLines = refBody
   .map((u) => u.trim())
   .filter((u) => u && u !== "...");
 
-// ── ours, out of the harness log ─────────────────────────────────────────────
+// ours, out of the harness log
 //
 // `drafted:` is the reply and `then:` the follow-up — the two things the
 // dispatcher actually decided to say. `held:` is excluded on purpose: it is a

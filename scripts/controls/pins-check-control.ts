@@ -55,7 +55,7 @@ function bad(label: string, detail: string): void {
   results.push(`  FAIL  ${label}\n        ${detail}`);
 }
 
-// ── Half 1: the real lockfile is readable and non-empty ─────────────────────
+// Half 1: the real lockfile is readable and non-empty
 //
 // Against the REAL file, not a synthetic one: a fixture written by this control
 // could only prove the control agrees with itself. This is the half that
@@ -99,7 +99,7 @@ try {
   );
 }
 
-// ── Half 2: planted outcomes, one at a time ─────────────────────────────────
+// Half 2: planted outcomes, one at a time
 
 const PINS: PinnedUrl[] = [
   { id: "llama-win", kind: "archive", url: "https://github.com/x/y/releases/download/b1/a.zip" },
@@ -186,7 +186,7 @@ for (const c of CASES) {
   else bad(`${c.label} — got ${dead} dead, expected ${c.expectDead}`, c.detail);
 }
 
-// ── Vacuity floor: an empty lockfile is refused, not passed ─────────────────
+// Vacuity floor: an empty lockfile is refused, not passed
 //
 // `checkPins([])` resolving to `[]` and `deadPins([])` returning `[]` is a clean
 // PASS over nothing. `readPinnedUrls` is what has to refuse it, so that is what
@@ -240,7 +240,7 @@ try {
   rmSync(tmp, { recursive: true, force: true });
 }
 
-// ── Verdict ─────────────────────────────────────────────────────────────────
+// Verdict
 
 console.log("pinned-upstream-artifact negative control\n");
 for (const line of results) console.log(line);

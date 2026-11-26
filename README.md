@@ -6,8 +6,8 @@ It is a separate resource. It reaches tRadio only through tRadio's integration e
 
 ## Requirements
 
-- **tRadio 7.2** or newer. An older tRadio is detected; tRadioAI stays idle and says what is missing.
-- **tLib 1.2** or newer, started before both.
+- **tRadio 7.3** or newer. An older tRadio is detected; tRadioAI stays idle and says what is missing.
+- **tLib 1.3** or newer, started before both.
 - FXServer on Windows or Linux, with OneSync.
 - A hosted provider key, or the [local engine](docs/content/local-engine.mdx) (about 2.5 GB of model files, x86-64 only).
 
@@ -83,7 +83,7 @@ Console commands (server console only):
 
 | Command | What it does |
 | --- | --- |
-| `tradioai_status` | tRadio hooks found, engine per capability, keys set, local engine state |
+| `tradioai_status` | tRadio hooks found, engine per capability, keys set, hosted call rate, local engine state |
 | `tradioai_reload` | re-read both config files and apply them |
 | `tradioai_models <provider>` | list a provider's model ids |
 | `tradioai_download` | fetch the local engine's model files |
@@ -102,7 +102,7 @@ Console commands (server console only):
 | Console says | Do this |
 | --- | --- |
 | `tRadio refused <hook>. Add this line ...` | add `Config.integrations = { 'tRadioAI' }` to **tRadio's** `config/config.lua` and restart tRadio |
-| `this tRadio is too old for tRadioAI` | update tRadio to 7.2 or newer |
+| `this tRadio is too old for tRadioAI` | update tRadio to 7.3 or newer |
 | `tRadio is not running` | start tRadio; tRadioAI picks it up on its own |
 | `... needs a model for text` | set `model` for that provider |
 | `... none is set in tradioai_<provider>_key` | add the convar to `server.cfg` and restart the server |

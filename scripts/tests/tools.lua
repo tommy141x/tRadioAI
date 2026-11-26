@@ -22,7 +22,7 @@ local host = H.host()
 local logged = H.silence()
 _G.source = nil
 
--- ── What the operator wrote ─────────────────────────────────────────────────
+-- What the operator wrote
 local hookCalls = { tools = 0 }
 local throwingHook = false
 
@@ -104,7 +104,7 @@ end
 
 local ids = toolIds()
 
--- ── Registry ────────────────────────────────────────────────────────────────
+-- Registry
 check(ids[1] == 'unit_status', 'the built-in comes first, so a long operator list cannot push it past the ceiling')
 check(has(ids, 'tow_request'), 'a valid operator tool is offered')
 check(has(ids, 'create_call'), 'an incident hook the operator supplied becomes a tool')
@@ -128,12 +128,12 @@ neg(said:find('ignoring a tool from Config.tools', 1, true) ~= nil,
     'a rejected tool is named in the console, with its reason')
 check(said:find("duplicate tool id 'unit_status'", 1, true) ~= nil, 'a duplicate id is reported')
 
--- ── availability ────────────────────────────────────────────────────────────
+-- availability
 check(not has(toolIds({ channelName = 'DISP' }), 'sometimes'), 'available() hides a tool this turn')
 check(has(toolIds({ channelName = 'FIRE' }), 'sometimes'), 'and offers it when it applies')
 neg(not has(toolIds(), 'broken_available'), 'a tool whose available() throws is hidden, not offered')
 
--- ── running ─────────────────────────────────────────────────────────────────
+-- running
 local function run(id, input, ctx) return host.exports.runTool(id, input, ctx or {}) end
 
 local towed = run('tow_request', 'Elgin and Vespucci')
@@ -149,7 +149,7 @@ neg(run(CONTROL and 'tow_request' or 'not_a_tool', '').ok == false, 'an undeclar
 check(run('silent_true', '').message == 'done', 'ok with no message says done')
 check(run('silent_false', '').message == 'that could not be done', 'not ok with no message says so')
 
--- ── unit status ─────────────────────────────────────────────────────────────
+-- unit status
 local ctx = { serverId = 7, callsign = 'King 41' }
 local set = run('unit_status', '  10-8. ', ctx)
 check(set.ok == true and set.message == 'King 41 is now showing 10-8', 'unit_status trims and drops transcription punctuation')
@@ -170,7 +170,7 @@ for _, fn in ipairs(host.handlers['playerDropped']) do fn() end
 neg(host.exports.getUnitStatus(7) == nil, 'a player who disconnects is back in service')
 _G.source = nil
 
--- ── hooks the bundle reads ──────────────────────────────────────────────────
+-- hooks the bundle reads
 local info = host.exports.getUnitInfo(7)
 check(info.note == 'on a traffic stop' and info.status == nil, 'getUnitInfo carries the operator note')
 check(host.exports.getUnitInfo(9).note == nil, 'a unitNote that throws is no note, not an error')
@@ -184,7 +184,7 @@ check(host.exports.getInstructions({ channelName = 'DISP' }) == 'Units on OPS-2 
 check(#host.exports.getInstructions({ channelName = 'LONG' }) == 4000, 'instructions are capped at 4000 characters')
 neg(host.exports.getInstructions({ channelName = CONTROL and 'DISP' or 'BAD' }) == nil, 'instructions that are not a string are nothing')
 
--- ── refresh ─────────────────────────────────────────────────────────────────
+-- refresh
 local before = hookCalls.tools
 local count = host.exports.refreshTools()
 check(hookCalls.tools == before + 1 and count >= #host.exports.getTools({}), 'refreshTools rebuilds and returns how many tools are registered')

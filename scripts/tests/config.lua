@@ -35,7 +35,7 @@ local function load(config)
     return pushed[1] and pushed[1].args[1] or nil, table.concat(logged, '\n')
 end
 
--- ── Defaults ────────────────────────────────────────────────────────────────
+-- Defaults
 local payload, said = load({ answer911 = CONTROL and true or nil })
 check(payload ~= nil, 'an empty Config still pushes a payload')
 check(payload.enabled == false, 'disabled by default')
@@ -53,7 +53,7 @@ neg(answers(CONTROL and true or 'true') == false, 'a string "true" is not consen
 neg(answers(CONTROL and true or 1) == false, 'the number 1 is not consent to answer 911')
 neg(answers(CONTROL and true or nil) == false, 'an absent answer911 is not consent')
 
--- ── The payload carries what the bundle reads ───────────────────────────────
+-- The payload carries what the bundle reads
 local full = load({
     enabled = true,
     channels = { 154.755, 460.25 },
@@ -85,7 +85,7 @@ check(full.localEngine.root == '/data/ai' and full.localEngine.textModel == 'm.g
 check(load({ voiceGender = 'robot' }).voiceGender == 'female', 'an unknown voice gender falls back to female')
 check(load({ callsign = 42 }).callsign == 'Dispatch', 'a callsign that is not a string falls back')
 
--- ── Secrets ─────────────────────────────────────────────────────────────────
+-- Secrets
 local leaky, leakySaid = load({
     providers = { text = { provider = 'openai', model = 'gpt-4o-mini', key = SECRET } },
 })
@@ -114,7 +114,7 @@ neg(leakySaid:find('tradioai_openai_key', 1, true) ~= nil, 'and told which conva
 local tidy, tidySaid = load({ providers = { text = { provider = 'openai', model = 'gpt-4o-mini' } } })
 check(tidy.providers.text.model == 'gpt-4o-mini' and not tidySaid:find('ignored', 1, true), 'a provider with no key in the file says nothing')
 
--- ── Unknown keys ────────────────────────────────────────────────────────────
+-- Unknown keys
 local _, typoSaid = load({ enabled = true, channles = { 154.755 }, aiDispatch = {} })
 check(typoSaid:find('channles', 1, true) ~= nil and typoSaid:find('aiDispatch', 1, true) ~= nil,
     'keys this version does not read are named, so a typo is not silent')
@@ -128,7 +128,7 @@ local _, knownSaid = load({
 })
 neg(not knownSaid:find('does not read', 1, true), 'a config made only of known keys, hooks included, says nothing')
 
--- ── tradioai_reload ─────────────────────────────────────────────────────────
+-- tradioai_reload
 -- The command re-reads both config files and pushes again, with no restart.
 load({ enabled = false })
 local reloadCmd = host.commands['tradioai_reload']

@@ -131,7 +131,7 @@ TriggerEvent('tradioai:call', {
 | `Config.unitNote(serverId)` | adds a line beside a roster unit, "on a traffic stop". It is why a busy unit is passed over. Runs once per unit per turn, so read a cached value |
 | `Config.location(coords)` | turns coordinates into an address. FiveM has no server-side street lookup, so without it a call carries none |
 
-`auto911` puts new calls on the air; `answer911` picks them up and talks to the caller first (opt-in, and only while no human dispatcher is signed on).
+`auto911` puts new calls on the air; `answer911` picks them up and talks to the caller first (opt-in, and only while no human dispatcher is signed on). A call that arrives while every channel with units on it is mid-exchange waits for the channel, for up to two minutes, and goes out when the exchange ends. A call the dispatcher cannot pick up is put on the air instead, as it would be with `answer911` off. A human dispatcher who signs on during a call takes the next one; the call in progress is finished first.
 
 Other resources read a unit's last status with `exports['tRadioAI']:getUnitStatus(serverId)` and react to `tradioai:unitStatusChanged(serverId, status)`; `exports['tRadioAI']:setUnitStatus(serverId, status)` sets one. `exports['tRadioAI']:refreshTools()` rebuilds the tool list after you change what `Config.tools` returns.
 

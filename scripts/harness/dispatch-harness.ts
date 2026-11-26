@@ -213,7 +213,7 @@ const LUA = {
    * The tool tRadio actually ships, mirrored exactly.
    *
    * It used to be a stub of my own called `set_unit_status`, and the id was not a
-   * detail. `statusOutcomeReply` fires only for `unit_status` — it airs the tool's
+   * detail. `outcomeReadback` fires only for `unit_status` — it airs the tool's
    * own readback and skips the model entirely, which is the free deterministic
    * path and the common case. With the wrong id it never matched, so every status
    * turn in every run above paid a full compose AND spoke generated text, which is
@@ -1172,7 +1172,7 @@ try {
     // Ad hoc mode: one thing, no expectations, for when you want to hear what it
     // does with a particular line rather than whether it passed anything.
     const spec = { unit: KING41, say: oneLine || oneWav, expect: null };
-    console.log(`\n── ${oneWav ? "recording" : "line"}: ${spec.say} ──`);
+    console.log(`\n-- ${oneWav ? "recording" : "line"}: ${spec.say} --`);
     const turn = oneWav ? await sim.play(KING41, oneWav) : await sim.say(KING41, oneLine);
     const scored = judge(turn, spec, spec.say, "ad hoc", "");
     report(scored);
@@ -1180,7 +1180,7 @@ try {
   } else {
     for (const testCase of [...CASES, ...ADDRESSING, ...DISPATCH_FLOW]) {
       if (only.length > 0 && !only.includes(testCase.name)) continue;
-      console.log(`\n── ${testCase.name}: ${testCase.what} ──`);
+      console.log(`\n-- ${testCase.name}: ${testCase.what} --`);
       // Each case is its own scenario. Without this the previous case's reply
       // expectation is still live, and a case like `eavesdrop` is then judged on
       // state it never set up - see `resetChannel`.
@@ -1305,7 +1305,7 @@ try {
     for (const testCase of OVERLAP_CASES) {
       if (only.length > 0 && !only.includes(testCase.name)) continue;
       console.log(`
-── ${testCase.name}: ${testCase.what} ──`);
+-- ${testCase.name}: ${testCase.what} --`);
 
       sim.resetChannel();
       resetUnitStatuses();
@@ -1423,7 +1423,7 @@ try {
 
     for (const testCase of CALL_CASES) {
       if (only.length > 0 && !only.includes(testCase.name)) continue;
-      console.log(`\n── ${testCase.name}: ${testCase.what} ──`);
+      console.log(`\n-- ${testCase.name}: ${testCase.what} --`);
       console.log(`  ${testCase.caller.name} calls 911: "${testCase.message}"`);
 
       // The radio channel too: the announcement after a released call is a radio
@@ -1551,7 +1551,7 @@ const sorted = [...warm].sort((a, b) => a - b);
 const median = sorted.length ? (sorted[Math.floor(sorted.length / 2)] as number) : 0;
 const failed = results.filter((r) => r.wrong.length > 0);
 
-console.log(`\n${"─".repeat(60)}`);
+console.log(`\n${"-".repeat(60)}`);
 console.log(
   `turns          ${results.length}, ${answered.length} answered, ${measured.length} timed from an unkey`,
 );

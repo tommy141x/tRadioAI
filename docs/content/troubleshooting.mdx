@@ -56,8 +56,9 @@ The first is deliberate: "stand by" is only said when somebody is waiting or the
 | You see | Cause |
 | --- | --- |
 | calls are never picked up | `Config.answer911` is `false` (the default), a human dispatcher is signed on, or tRadio lacks the 911 hooks (`tradioai_status` shows `911 no`) |
-| `call: ... left in the queue — no station is open to answer from` | the station is closed: tRadio refused it, or the dispatcher is disabled |
-| `call: ... not answered — caller_offline` | the caller's client never connected inside 10 seconds. The call stays queued for a human |
+| `call: ... not picked up — no station is open to answer from` | the station is closed: tRadio refused it, or the dispatcher is disabled. With `auto911` on it tries to put the call on the air instead |
+| `call: ... not answered — caller_offline` | the caller's client never connected inside 10 seconds. The call stays queued for a human, and with `auto911` on it is put on the air |
+| `call: ... was never put out` | every channel with units on it stayed mid-exchange for two minutes, or more than four calls were waiting. The call is still in tRadio's queue |
 | the greeting never airs | the caller never joined the call's frequency within 6 seconds. tRadio's own 20 second answer watchdog ends the call |
 
 ## The local engine
