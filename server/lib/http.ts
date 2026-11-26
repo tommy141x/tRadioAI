@@ -105,6 +105,21 @@ export function post(options: PostOptions): Promise<HttpReply> {
       (response) => {
         const chunks: Buffer[] = [];
         response.on("data", (chunk: Buffer) => chunks.push(chunk));
+        // Once headers have arrived a dropped connection is reported on the RESPONSE,
+        // not the request, and `end` never fires. Unhandled, the promise simply never
+        // settled: an engine that died mid-reply held its turn, and the channel with it,
+        // until the turn's own deadline, and was logged as a timeout rather than as the
+        // connection reset it was.
+        const dropped = (error: Error) => {
+          options.signal.removeEventListener("abort", cancel);
+          reject(error);
+        };
+        response.on("error", dropped);
+        // `close` without a complete message is the same fault on a runtime that does
+        // not raise `error` for it. After `end` this is a second settle and does nothing.
+        response.on("close", () => {
+          if (!response.complete) dropped(new Error("the connection closed mid-reply"));
+        });
         response.on("end", () => {
           options.signal.removeEventListener("abort", cancel);
           const status = response.statusCode ?? 0;
