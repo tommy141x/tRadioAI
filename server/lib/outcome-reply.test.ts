@@ -1,29 +1,12 @@
 import { expect, test } from "bun:test";
-import { outcomeReadback, statusOutcomeReply } from "./outcome-reply";
+import { outcomeReadback } from "./outcome-reply";
 
 test("reads the confirmed status result without a second model pass", () => {
   expect(
-    statusOutcomeReply([
+    outcomeReadback([
       { tool: "unit_status", input: "10-8", ok: true, message: "Tommy is now showing 10-8" },
     ]),
   ).toBe("Tommy is now showing 10-8");
-});
-
-test("never turns a rejected or mixed action into a success announcement", () => {
-  expect(
-    statusOutcomeReply([
-      {
-        tool: "unit_status",
-        input: "right there",
-        ok: false,
-        message: "the unit did not report that status",
-      },
-    ]),
-  ).toBeNull();
-  expect(statusOutcomeReply([])).toBeNull();
-  expect(
-    statusOutcomeReply([{ tool: "patch_channels", input: "1 2", ok: true, message: "patched" }]),
-  ).toBeNull();
 });
 
 test("covers every tool, not only unit_status — that is the point of it", () => {

@@ -57,6 +57,18 @@ function text(value: unknown, maxLength: number): string | null {
   return trimmed.slice(0, maxLength);
 }
 
+/**
+ * Registration mistakes are said once each. The tool list is rebuilt every turn, so a
+ * plain warning repeated for as long as the operator's file kept the mistake in it.
+ */
+const warned = new Set<string>();
+
+function warnOnce(message: string): void {
+  if (warned.has(message)) return;
+  warned.add(message);
+  aiLog.warn(message);
+}
+
 /** Lua sends a sequential table; anything else means the hook returned something odd. */
 function asArray(value: unknown): unknown[] {
   if (Array.isArray(value)) return value;
@@ -162,8 +174,18 @@ export function describeTools(context: AiTurnContext): AiTool[] {
       aiLog.warn("tools: skipping a tool with no id or description");
       continue;
     }
+    // A built-in's id is reserved whether or not the built-in is on offer this turn.
+    // `runTool` finds a built-in by id, so an operator's `hang_up` or `channel_tone`
+    // registered while ours was hidden (no call, no tones configured) was described to
+    // the model in the operator's words and then executed as OURS. Only the tools that
+    // `yieldsToLua` hand their id over, and those were dropped from the list above.
+    const reserved = findBuiltin(id);
+    if (reserved && reserved.yieldsToLua !== true) {
+      warnOnce(`tools: "${id}" is a built-in tool's id; the one in Config.tools is ignored`);
+      continue;
+    }
     if (seen.has(id)) {
-      aiLog.warn(`tools: duplicate tool id "${id}" ignored`);
+      warnOnce(`tools: duplicate tool id "${id}" ignored`);
       continue;
     }
     seen.add(id);

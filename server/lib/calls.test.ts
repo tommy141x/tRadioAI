@@ -12,7 +12,6 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import type { Call911 } from "./tradio-hooks";
 import {
   answeredById,
-  answeredCalls,
   answeredCount,
   answeredOn,
   forgetCall,
@@ -121,11 +120,6 @@ describe("the answered-call registry", () => {
     noteAnswered(call("call911_b", -900002), { ...info, id: "call911_b" });
 
     expect(answeredCount()).toBe(2);
-    expect(
-      answeredCalls()
-        .map((entry) => entry.callId)
-        .sort(),
-    ).toEqual(["call911_a", "call911_b"]);
 
     forgetCall("call911_a");
     expect(isAnsweredCall(-900002)).toBe(true);

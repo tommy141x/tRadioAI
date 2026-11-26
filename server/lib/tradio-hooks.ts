@@ -58,7 +58,7 @@ interface Globals {
 
 const g = globalThis as unknown as Globals;
 
-// ─── raw calls ────────────────────────────────────────────────────────────────
+// raw calls
 
 type Called<T> = { ok: true; value: T } | { ok: false; missing: boolean; error: string };
 
@@ -121,7 +121,7 @@ function token(prefix: string): string {
   return `${prefix}-${crypto.randomUUID()}`;
 }
 
-// ─── capability probe ─────────────────────────────────────────────────────────
+// capability probe
 
 export interface Capabilities {
   /** tRadio's resource state: "absent" when it is not installed at all. */
@@ -277,7 +277,7 @@ export function isStationId(serverId: number): boolean {
   return serverId >= STATION_ID_MIN && serverId <= STATION_ID_MAX;
 }
 
-// ─── channels, units, alerts, patches ────────────────────────────────────────
+// channels, units, alerts, patches
 
 export interface TradioChannel {
   zoneName: string;
@@ -449,7 +449,7 @@ export function removePatch(id: string): boolean {
   return outcome.ok && outcome.value === true;
 }
 
-// ─── stations (the dispatcher's voice) ───────────────────────────────────────
+// stations (the dispatcher's voice)
 
 export interface StationsView {
   /** Human dispatchers signed on to the dispatch panel. */
@@ -483,10 +483,6 @@ export function stations(now = Date.now()): StationsView {
   }
   stationsCache = { at: now, value: { humans } };
   return stationsCache.value;
-}
-
-export function resetStationsCache(): void {
-  stationsCache = null;
 }
 
 export interface StationOptions {
@@ -611,7 +607,7 @@ function onStationDone(stationId: unknown, requestId: unknown, payload: unknown)
   });
 }
 
-// ─── hearing transmissions ───────────────────────────────────────────────────
+// hearing transmissions
 
 export interface Transmission {
   serverId: number;
@@ -695,7 +691,7 @@ function onTapTransmission(id: unknown, payload: unknown): void {
   }
 }
 
-// ─── 911 ─────────────────────────────────────────────────────────────────────
+// 911
 
 export interface Call911 {
   id: string;
@@ -766,7 +762,7 @@ export function end911(callId: string): boolean {
   return outcome.ok && outcome.value === true;
 }
 
-// ─── CAD ─────────────────────────────────────────────────────────────────────
+// CAD
 
 export interface CadCapabilities {
   /** The provider tRadio would use, or "" when none. */
@@ -877,7 +873,7 @@ function onCadResult(requestId: unknown, payload: unknown): void {
   });
 }
 
-// ─── event wiring ────────────────────────────────────────────────────────────
+// event wiring
 
 let wired = false;
 

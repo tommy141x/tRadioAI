@@ -59,16 +59,3 @@ export function outcomeReadback(outcomes: readonly AiOutcome[], callsign = ""): 
   // transmission shape with, applied here in code rather than hoped for.
   return alreadyNames(message, callsign) ? message : `${callsign}, ${message}`;
 }
-
-/**
- * Kept as the old name so existing callers and tests keep working.
- *
- * @deprecated Use {@link outcomeReadback}, which covers every tool rather than
- * only `unit_status`.
- */
-export function statusOutcomeReply(outcomes: readonly AiOutcome[]): string | null {
-  if (outcomes.length !== 1) return null;
-  const outcome = outcomes[0];
-  if (!outcome || outcome.tool !== "unit_status") return null;
-  return outcomeReadback(outcomes);
-}

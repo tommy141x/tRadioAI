@@ -17,7 +17,7 @@
  *    `answer911` runs, so it is never in the wanted set.
  */
 
-import { isAnsweredCall } from "./calls";
+import { answeredCount, isAnsweredCall } from "./calls";
 import { aiLog } from "./logger";
 import * as tradio from "./tradio-hooks";
 
@@ -40,6 +40,9 @@ export interface StationWants {
 let current: OpenStation | null = null;
 let failedAt = 0;
 
+/** What a short-lived relay station is called: the configured callsign, once one is known. */
+let transientName = "Dispatch";
+
 /** After a refusal, wait this long before asking again: the sweep runs twice a second. */
 const RETRY_AFTER_MS = 30_000;
 
@@ -52,16 +55,31 @@ const sameSet = (a: number[], b: number[]) =>
  * Cheap to call on every sweep: it does nothing when the station already matches.
  */
 export function syncStation(wants: StationWants | null, now = Date.now()): void {
-  if (!wants || (wants.frequencies.length === 0 && !wants.answers911)) {
-    closeStation();
-    return;
-  }
+  if (wants) transientName = wants.name;
+  const unwanted = !wants || (wants.frequencies.length === 0 && !wants.answers911);
   if (
+    !unwanted &&
     current &&
     current.name === wants.name &&
     current.answers911 === wants.answers911 &&
     sameSet(current.frequencies, wants.frequencies)
   ) {
+    return;
+  }
+
+  // Not while a 911 call is live on it. tRadio has no "change coverage": a station is
+  // closed and opened again, and closing one drops every console it holds, the call's
+  // line included (`dropStation` in tRadio's station.ts), which also aborts whatever it
+  // was saying. The usual trigger is a human dispatcher signing on mid-call: the wanted
+  // set changes on the next sweep, and the caller would be cut off for it. The human
+  // takes the NEXT call (see `runTurn`), so the change waits for this one to end; the
+  // turn loop's own `yielding` gate is what keeps the dispatcher quiet on a channel the
+  // human took in the meantime. `closeStation()` itself is not gated, so switching the
+  // dispatcher off still takes effect at once.
+  if (current && answeredCount() > 0) return;
+
+  if (unwanted) {
+    closeStation();
     return;
   }
   if (failedAt > 0 && now - failedAt < RETRY_AFTER_MS) return;
@@ -100,6 +118,7 @@ export function stationId(): string | null {
 export function forgetStation(): void {
   current = null;
   failedAt = 0;
+  transientName = "Dispatch";
 }
 
 function covers(frequency: number): boolean {
@@ -127,7 +146,7 @@ export async function transmitOn(
   let transient: string | null = null;
   if (!id) {
     transient = tradio.openStation({
-      name: "Dispatch",
+      name: transientName,
       frequencies: [frequency],
       answers911: false,
     });

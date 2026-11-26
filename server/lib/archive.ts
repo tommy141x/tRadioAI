@@ -216,7 +216,7 @@ export function unpackTarGz(archivePath: string, dest: string, strip: number): U
     offset += dataBlocks;
   }
 
-  // ── Why these are COPIES and not symlinks ──
+  // Why these are COPIES and not symlinks
   //
   // FiveM's node sandbox refuses symlink creation outright, and surfaces it as a
   // permission error on the TARGET rather than on the link. Node's `fs.symlink`

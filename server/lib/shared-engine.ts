@@ -40,6 +40,9 @@ function tlib(): TlibExports | null {
   }
 }
 
+/** The address last announced per capability, so the log line marks a change. */
+const announced = new Map<string, string>();
+
 /**
  * An engine someone else is already running for this workload.
  *
@@ -55,10 +58,19 @@ export function sharedEngine(capability: string, workload: string): Advertisemen
 
   try {
     const encoded = registry.InferenceLookup(capability, workload);
-    if (typeof encoded !== "string" || !encoded) return null;
+    if (typeof encoded !== "string" || !encoded) {
+      announced.delete(capability);
+      return null;
+    }
     const parsed = JSON.parse(encoded) as Advertisement;
     if (!parsed?.url) return null;
-    aiLog.info(`shared: using ${parsed.resource}'s ${capability} engine at ${parsed.url}`);
+    // Said when the answer changes, not every time it is asked: an adopted engine is
+    // looked up on every request, three times a turn, and at `info` that was three
+    // identical lines per turn for the whole shift.
+    if (announced.get(capability) !== parsed.url) {
+      announced.set(capability, parsed.url);
+      aiLog.info(`shared: using ${parsed.resource}'s ${capability} engine at ${parsed.url}`);
+    }
     return parsed;
   } catch {
     return null;

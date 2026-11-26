@@ -5,23 +5,6 @@
  * so the only acceptable cost is a pass over a few seconds of 8 kHz mono.
  */
 
-/** Null rather than throwing — a malformed packet is a dropped packet, not a crash. */
-export function base64ToBytes(value: string): Uint8Array | null {
-  try {
-    const buf = Buffer.from(value, "base64");
-    // Buffer.from silently ignores garbage rather than failing, so an input that
-    // decoded to nothing was not base64 in any useful sense.
-    if (buf.length === 0) return null;
-    return new Uint8Array(buf);
-  } catch {
-    return null;
-  }
-}
-
-export function bytesToBase64(bytes: Uint8Array): string {
-  return Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength).toString("base64");
-}
-
 /**
  * Linear resampling.
  *

@@ -50,7 +50,7 @@ afterEach(() => {
   scratch = null;
 });
 
-// ── Building a real ustar stream, so the fixtures are genuinely valid ────────
+// Building a real ustar stream, so the fixtures are genuinely valid
 
 interface Entry {
   name: string;
@@ -178,7 +178,7 @@ function writeRawZip(dir: string, files: { name: string; body: string }[]): stri
   return path;
 }
 
-// ── The shapes that actually occur upstream ─────────────────────────────────
+// The shapes that actually occur upstream
 
 describe("unpackTarGz — the shapes the pinned archives contain", () => {
   test("files, directories and a sibling symlink, with --strip-components", () => {
@@ -312,7 +312,7 @@ describe("unpackTarGz — the shapes the pinned archives contain", () => {
   });
 });
 
-// ── The hostile shapes, which no upstream archive contains ─────────────────
+// The hostile shapes, which no upstream archive contains
 
 describe("unpackTarGz — refusals", () => {
   const dir = () => temp();
@@ -438,7 +438,7 @@ describe("unpackArchive — dispatch", () => {
   });
 });
 
-// ── Against the real pinned archives ───────────────────────────────────────
+// Against the real pinned archives
 
 /**
  * `tar -tv` as the oracle, which is the point of this half: the counts and the

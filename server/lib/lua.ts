@@ -1,9 +1,8 @@
 /**
  * Calling into the resource's own Lua from the dispatcher.
  *
- * Its own module so the tool layers can share it without importing each other:
- * `tools.ts` reaches the operator's registry through here, `builtins.ts` reaches
- * alerts and tones through here, and neither depends on the other.
+ * `tools.ts` and `index.ts` reach the operator's hooks through here — `index.ts`
+ * by way of the `callLuaSafely` that `tools.ts` re-exports.
  */
 
 import { aiLog } from "./logger";
@@ -30,14 +29,4 @@ export function callLuaSafely<T>(name: string, args: unknown[], fallback: T): T 
     aiLog.warn(`tools: ${name} threw — ${(err as Error).message}`);
     return fallback;
   }
-}
-
-/** Lua sends a list of strings as a sequential table; anything else arrives as an object. */
-export function luaStrings(value: unknown): string[] {
-  const list = Array.isArray(value)
-    ? value
-    : value && typeof value === "object"
-      ? Object.values(value as object)
-      : [];
-  return list.filter((entry): entry is string => typeof entry === "string" && entry.length > 0);
 }

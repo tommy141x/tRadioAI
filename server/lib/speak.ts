@@ -16,6 +16,7 @@
  */
 
 import { pcmDurationMs, normalisePeak, resamplePcm } from "./audio";
+import { providerPlan, voiceFor } from "./config";
 import { aiLog } from "./logger";
 import { provider } from "./provider";
 import { MAX_REPLY_MS, transmitOn } from "./station";
@@ -63,8 +64,18 @@ const SPEECH_CACHE_MAX_CHARS = 48;
 
 const speechCache = new Map<string, Int16Array>();
 
+/**
+ * Keyed on what actually produces the sound, not on the gender that selects it.
+ *
+ * The key used to be gender and text, so after `tradioai_reload` changed the voice, the
+ * speech provider or its model, every stock phrase went on airing in the old voice until
+ * the resource restarted, while generated replies used the new one: a dispatcher with two
+ * voices. Lines cached for the previous voice are simply never looked up again and age
+ * out of the cache.
+ */
 function speechKey(spoken: string, gender: VoiceGender): string {
-  return `${gender}\u0000${spoken}`;
+  const speech = providerPlan().speech;
+  return [speech.provider, speech.model, voiceFor(gender), spoken].join("\u0000");
 }
 
 function cachedSpeech(spoken: string, gender: VoiceGender): Int16Array | null {
@@ -136,6 +147,10 @@ async function synthesise(
  * the rejection escaped the readiness callback, and a server with no local voice
  * installed printed five "Unhandled promise rejection" blocks and five identical
  * warnings at startup — for a feature that ships switched off and undownloaded.
+ *
+ * The first failure ends the warm. `synthesise` reports one as `null` rather than by
+ * throwing, and the `try`/`catch` that used to stand here therefore never fired: a dead
+ * Piper logged the same warning once per line, thirty-two times for a full warm set.
  */
 export async function warmSpeech(
   lines: readonly string[],
@@ -146,14 +161,9 @@ export async function warmSpeech(
     if (signal.aborted) return;
     const spoken = sayable(line);
     if (!spoken || cachedSpeech(spoken, gender)) continue;
-    try {
-      await synthesise(spoken, gender, signal);
-    } catch {
-      // Stop, rather than continue and fail identically on every remaining
-      // line: whatever makes one line unsynthesisable — no voice on disk, no
-      // runtime, a dead Piper — is a property of the engine, not of the line.
-      return;
-    }
+    // Whatever makes one stock line unsynthesisable — no voice on disk, no runtime, a
+    // dead Piper — is a property of the engine, not of the line.
+    if (!(await synthesise(spoken, gender, signal))) return;
   }
 }
 

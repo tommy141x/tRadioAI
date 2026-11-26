@@ -123,28 +123,6 @@ const PROFILES: Record<ProviderId, ProviderProfile> = {
   },
 };
 
-/**
- * Every provider that can serve `capability`, `local` first.
- *
- * Exported so a picker or a status line cannot express an impossible
- * pairing. The alternative — the frontend carrying its own copy of which provider
- * serves what — is a second table that goes stale the first time one is added, and the
- * symptom would be a dropdown offering ElevenLabs for transcription.
- *
- * `local` leads because it is the default and the honest answer for an operator who
- * has not decided.
- */
-export function providersServing(capability: Capability): ProviderId[] {
-  return (Object.keys(PROFILES) as ProviderId[]).filter((id) =>
-    PROFILES[id].serves.includes(capability),
-  );
-}
-
-/** Whether a provider needs an API key. `local` does not. */
-export function providerNeedsKey(provider: ProviderId): boolean {
-  return PROFILES[provider].needsKey;
-}
-
 export function isProviderId(value: string): value is ProviderId {
   return (PROFILES as Record<string, ProviderProfile | undefined>)[value] !== undefined;
 }
@@ -275,11 +253,6 @@ export function resolveProviders(raw?: Record<string, unknown>): ProviderPlan {
     speech: resolveCapability("speech", parseCapability(source.speech)),
     transcription: resolveCapability("transcription", parseCapability(source.transcription)),
   };
-}
-
-/** True when nothing leaves the machine. */
-export function isFullyLocal(plan: ProviderPlan): boolean {
-  return CAPABILITIES.every((capability) => !plan[capability].hosted);
 }
 
 /** One line per capability, safe to log: no keys pass through here. */

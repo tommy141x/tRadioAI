@@ -136,9 +136,6 @@ let current: AiDispatchConfig = { ...DEFAULTS, channels: [] };
 let provider: ProviderConfig = { voices: { male: [], female: [] } };
 let plan: ProviderPlan = resolveProviders();
 
-/** The last `providers` table Lua sent, before key presence was layered on. */
-let lastProvidersRaw: Record<string, unknown> = {};
-
 /**
  * Tell the resolver which providers have a key, without handing it the key.
  *
@@ -455,10 +452,7 @@ export function applyAiConfig(raw: unknown): void {
   if (provider.voices.male.length === 0) provider.voices.male = PROVIDER_DEFAULTS.voices.male;
   if (provider.voices.female.length === 0) provider.voices.female = PROVIDER_DEFAULTS.voices.female;
 
-  // Kept so a key stored later can be re-resolved against the same request without
-  // waiting for Lua to push the config again.
-  lastProvidersRaw = (payload.providers ?? {}) as Record<string, unknown>;
-  plan = resolveProviders(withKeyPresence(lastProvidersRaw));
+  plan = resolveProviders(withKeyPresence((payload.providers ?? {}) as Record<string, unknown>));
 
   const localRaw = (payload.localEngine ?? {}) as Record<string, unknown>;
   const requestedRoot = str(localRaw.root, "", 256);
@@ -504,7 +498,6 @@ export function applyAiConfig(raw: unknown): void {
 export function resetAiConfig(): void {
   current = { ...DEFAULTS, channels: [] };
   provider = { voices: { male: [], female: [] } };
-  lastProvidersRaw = {};
   plan = resolveProviders();
   stopLocalEngines();
 }

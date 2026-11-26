@@ -19,7 +19,7 @@ import { join } from "node:path";
 import { resetCad } from "./cad";
 import { answeredCount, resetCalls } from "./calls";
 import { resetAiConfig } from "./config";
-import { resetConversations } from "./conversation";
+import { history, resetConversations } from "./conversation";
 import { installDispatcher } from "./index";
 import { aiLog } from "./logger";
 import { setProvider } from "./provider";
@@ -40,22 +40,46 @@ interface Script {
   heard: Array<{ mime: string; bias: string }>;
   spoken: string[];
   toolsSeen: string[][];
+  /** One per transcribe call; a defined entry holds that call until it settles. */
+  gates: Array<Promise<void> | undefined>;
+  /** One per decide call; a defined entry is thrown. */
+  decideErrors: Array<Error | undefined>;
 }
 
 let script: Script;
 
 function newScript(): Script {
-  return { transcripts: [], decisions: [], heard: [], spoken: [], toolsSeen: [] };
+  return {
+    transcripts: [],
+    decisions: [],
+    heard: [],
+    spoken: [],
+    toolsSeen: [],
+    gates: [],
+    decideErrors: [],
+  };
+}
+
+function gate(): { wait: Promise<void>; open: () => void } {
+  let open = () => {};
+  const wait = new Promise<void>((resolve) => {
+    open = resolve;
+  });
+  return { wait, open };
 }
 
 const provider: AiProvider = {
   name: "scripted",
   async transcribe(clip, _signal, bias = "") {
     script.heard.push({ mime: clip.mime, bias });
+    const held = script.gates.shift();
+    if (held) await held;
     return script.transcripts.shift() ?? "";
   },
   async decide(_system, _prompt, tools: readonly AiTool[]) {
     script.toolsSeen.push(tools.map((tool) => tool.id));
+    const failure = script.decideErrors.shift();
+    if (failure) throw failure;
     return script.decisions.shift() ?? { actions: [], reply: "" };
   },
   async compose() {
@@ -562,5 +586,157 @@ describe("tools", () => {
     stub.transmission({ serverId: 7, frequency: FREQ });
     await until(() => script.toolsSeen.length === 2, "second decision", 5000);
     expect(script.toolsSeen[1]).not.toContain("run_plate");
+  });
+});
+
+describe("regressions", () => {
+  const call = {
+    id: "call911_r",
+    callerServerId: 9,
+    callerName: "Alex Vance",
+    message: "break in",
+    frequency: CALL_FREQ,
+  };
+
+  const onCallFreq = () => stub.transmits.filter((entry) => entry.frequency === CALL_FREQ).length;
+
+  /** A call picked up, the caller on the line and greeted. */
+  async function answeredAndGreeted(): Promise<void> {
+    await until(() => [...stub.stations.values()][0]?.answers911 === true, "station");
+    stub.put(CALL_FREQ, 9, { name: "Alex Vance" });
+    stub.queueCall(call);
+    await until(() => stub.answered911.length === 1, "answer");
+    await until(() => onCallFreq() === 1, "the greeting", 3000);
+  }
+
+  test("a human dispatcher signing on mid-call does not close the station that is on the call", async () => {
+    world();
+    start({ answer911: true, auto911: false });
+    await until(() => stub.taps.size === 1 && stub.stations.size === 1, "tap and station");
+    const station = stub.stationId();
+    await answeredAndGreeted();
+
+    stub.humans = [{ serverId: -1001, selected: FREQ, listening: [] }];
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+    expect(stub.stationId()).toBe(station);
+    expect(stub.called("closeStation").filter((entry) => entry.args[0] === station)).toHaveLength(
+      0,
+    );
+
+    stub.fire("tradio:911:ended", 9, "caller_hangup");
+    await until(() => !stub.stations.has(station as string), "the station to close", 2000);
+  });
+
+  test("a 911 call that arrives while the only channel is mid-turn is put out when the turn ends", async () => {
+    world();
+    script.transcripts.push("Dispatch, King 41, show me 10-8");
+    script.decisions.push(
+      { actions: [], reply: "King 41, copy" },
+      { actions: [], reply: "King 42, respond, structure fire" },
+    );
+    const held = gate();
+    script.gates.push(held.wait);
+    start();
+    await until(() => stub.taps.size === 1 && stub.stations.size === 1, "tap and station");
+
+    stub.transmission({ serverId: 7, frequency: FREQ, name: "King 41" });
+    await until(() => script.heard.length === 1, "transcription entered");
+    stub.fire("tradioai:call", { source: "CAD", message: "structure fire on Elgin Avenue" });
+    await quiet();
+    expect(script.spoken).toHaveLength(0);
+    expect(script.toolsSeen).toHaveLength(0);
+
+    held.open();
+    await until(
+      () =>
+        script.spoken.includes("King 41, copy") &&
+        script.spoken.includes("King 42, respond, structure fire"),
+      "both replies",
+      5000,
+    );
+    expect(script.spoken.indexOf("King 41, copy")).toBeLessThan(
+      script.spoken.indexOf("King 42, respond, structure fire"),
+    );
+    await until(() => stub.transmits.length >= 2, "both on the air");
+    expect(stub.transmits.every((entry) => entry.frequency === FREQ)).toBe(true);
+  });
+
+  test("a call the dispatcher could not pick up is announced on the radio instead", async () => {
+    world();
+    stub.answerRefusal = "no_console";
+    script.decisions.push({ actions: [], reply: "King 41, respond, break in" });
+    start({ answer911: true, auto911: true });
+    await until(() => [...stub.stations.values()][0]?.answers911 === true, "station");
+    stub.queueCall(call);
+    await until(
+      () => script.spoken.includes("King 41, respond, break in"),
+      "the announcement",
+      5000,
+    );
+    await until(() => stub.transmits.length >= 1, "on the air");
+    expect(stub.transmits[0]?.frequency).toBe(FREQ);
+    expect(answeredCount()).toBe(0);
+  });
+
+  test("a call somebody else already has is not announced", async () => {
+    world();
+    stub.answerRefusal = "already_handled";
+    script.decisions.push({ actions: [], reply: "King 41, respond, break in" });
+    start({ answer911: true, auto911: true });
+    await until(() => [...stub.stations.values()][0]?.answers911 === true, "station");
+    stub.queueCall(call);
+    await quiet();
+    await quiet();
+    expect(script.spoken).toHaveLength(0);
+    expect(script.toolsSeen).toHaveLength(0);
+  });
+
+  test("a call that ends while a turn is in flight takes the turn with it and leaves no history", async () => {
+    world();
+    start({ answer911: true, auto911: false });
+    await until(() => stub.taps.size === 1 && stub.stations.size === 1, "tap and station");
+    await answeredAndGreeted();
+    const before = onCallFreq();
+
+    const held = gate();
+    script.gates.push(held.wait);
+    script.transcripts.push("there is a man with a gun");
+    stub.transmission({ serverId: 9, frequency: CALL_FREQ, name: "Alex Vance" });
+    await until(() => script.heard.length === 1, "transcription entered");
+
+    stub.fire("tradio:911:ended", 9, "caller_hangup");
+    held.open();
+    await quiet();
+    await quiet();
+    expect(script.toolsSeen).toHaveLength(0);
+    expect(onCallFreq()).toBe(before);
+    expect(history(CALL_FREQ)).toEqual([]);
+  });
+
+  test("a decision that fails fast does not leave 'stand by' to go out a second later", async () => {
+    world();
+    script.transcripts.push("Dispatch, King 41, show me 10-8", "King 42 to King 41");
+    script.decideErrors.push(new Error("HTTP 401"));
+    const second = gate();
+    script.gates.push(undefined, second.wait);
+    const warn = spyOn(aiLog, "warn").mockImplementation(() => {});
+    try {
+      start();
+      await until(() => stub.taps.size === 1 && stub.stations.size === 1, "tap and station");
+
+      stub.transmission({ serverId: 7, frequency: FREQ, name: "King 41" });
+      stub.transmission({ serverId: 8, frequency: FREQ, name: "King 42" });
+      await until(() => script.toolsSeen.length === 1, "the failed decision");
+      await until(() => script.heard.length === 2, "the queued transmission");
+
+      await new Promise((resolve) => setTimeout(resolve, 1600));
+      expect(script.spoken.filter((line) => line.endsWith("stand by"))).toEqual([]);
+
+      second.open();
+      await quiet();
+      await quiet();
+    } finally {
+      warn.mockRestore();
+    }
   });
 });

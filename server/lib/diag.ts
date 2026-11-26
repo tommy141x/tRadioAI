@@ -13,6 +13,7 @@
  * pasted status block is how a key would otherwise reach a support thread.
  */
 
+import { budgetState } from "./budget";
 import { aiConfig, providerPlan } from "./config";
 import { activeCad } from "./cad";
 import { aiLog } from "./logger";
@@ -48,6 +49,18 @@ export function statusLines(): string[] {
     `911: auto ${config.auto911 ? "on" : "off"}, answering ${config.answer911 ? "on" : "off"}`,
   );
   lines.push(`cad: ${activeCad()?.id ?? "none"}`);
+
+  // The two spend controls, which `budget.ts` has always described as reported here and
+  // which were not: an operator who set a ceiling had no way to see whether it was the
+  // reason turns were being served locally.
+  const budget = budgetState(config.hostedCallsPerMinute, config.turnCooldownMs);
+  lines.push(
+    `hosted calls: ${budget.hostedPerMinute} in the last minute, ` +
+      (budget.ceiling > 0
+        ? `ceiling ${budget.ceiling}, ${budget.shed} sent to the local engine instead`
+        : "no ceiling") +
+      `; ${budget.cooling} unit(s) inside the turn cooldown`,
+  );
 
   for (const line of describePlan(providerPlan())) lines.push(`  ${line}`);
   for (const provider of HOSTED) {

@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, describe, expect, test } from "bun:test";
+import { afterAll, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import {
   argumentRefusal,
   describeTools,
@@ -10,6 +10,7 @@ import {
   runTool,
 } from "./tools";
 import { resetCad } from "./cad";
+import { aiLog } from "./logger";
 import { resetHooks } from "./tradio-hooks";
 import type { AiTool, AiTurnContext } from "./types";
 
@@ -137,6 +138,45 @@ describe("describeTools", () => {
   test("is empty when the export is missing entirely", () => {
     (globals.exports as Record<string, unknown>)[RESOURCE] = {};
     expect(describeTools(context)).toEqual([]);
+  });
+});
+
+describe("an operator's tool with a built-in's id", () => {
+  const ids = () => describeTools(context).map((t) => t.id);
+
+  test("cannot take hang_up while the built-in is hidden off a call", () => {
+    luaTools = [
+      { id: "hang_up", description: "x" },
+      { id: "tow_request", description: "a unit needs a tow" },
+    ];
+    expect(ids()).toContain("tow_request");
+    expect(ids()).not.toContain("hang_up");
+  });
+
+  test("cannot take channel_tone while tRadio reports no tones", () => {
+    luaTools = [{ id: "channel_tone", description: "x" }];
+    expect(ids()).not.toContain("channel_tone");
+  });
+
+  test("is still offered, in the operator's words, for a built-in that yields to Lua", () => {
+    luaTools = [{ id: "run_plate", description: "the operator's own plate lookup" }];
+    const offered = describeTools(context).find((t) => t.id === "run_plate");
+    expect(offered?.description).toBe("the operator's own plate lookup");
+  });
+
+  test("is warned about once, however many turns rebuild the list", () => {
+    const warn = spyOn(aiLog, "warn").mockImplementation(() => {});
+    try {
+      luaTools = [{ id: "unpatch_channels", description: "x" }];
+      describeTools(context);
+      describeTools(context);
+      const reserved = warn.mock.calls.filter((call) =>
+        String(call[0]).includes("built-in tool's id"),
+      );
+      expect(reserved).toHaveLength(1);
+    } finally {
+      warn.mockRestore();
+    }
   });
 });
 

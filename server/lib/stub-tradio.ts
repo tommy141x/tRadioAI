@@ -59,7 +59,7 @@ export interface TransmitRecord {
 const INVOKER = "tRadioAI";
 
 export class StubTradio {
-  // ── world ──
+  // world
   channels: StubChannel[] = [];
   /** `getChannelInfo` per frequency. */
   occupancy = new Map<number, { speakers: number[]; listeners: number[]; talking: number[] }>();
@@ -74,7 +74,7 @@ export class StubTradio {
   humans: Array<{ serverId: number; selected: number | null; listening: number[] }> = [];
   calls = new Map<string, StubCall>();
 
-  // ── CAD ──
+  // CAD
   detected: Record<string, { writeStatus?: boolean }> = {};
   cadSupports: string[] = [];
   cadConsent = true;
@@ -85,7 +85,7 @@ export class StubTradio {
   cadHold = false;
   private heldCad: Array<() => void> = [];
 
-  // ── behaviour switches ──
+  // behaviour switches
   /** `Config.integrations` lists the caller. False makes every powerful hook refuse. */
   permitted = true;
   /** Fire `tradio:station:done` straight after `stationTransmit`. */
@@ -105,7 +105,7 @@ export class StubTradio {
   /** Number of `answer911` calls that answer `caller_offline` before one succeeds. */
   callerOfflineFor = 0;
 
-  // ── what the addon did ──
+  // what the addon did
   invocations: Array<{ name: string; args: unknown[] }> = [];
   stations = new Map<string, StubStation>();
   taps = new Map<string, { frequencies: number[] | null }>();
@@ -120,7 +120,7 @@ export class StubTradio {
   private saved = new Map<string, unknown>();
   state: "started" | "stopped" | "missing" = "started";
 
-  // ── install ──
+  // install
 
   install(): void {
     const g = globalThis as unknown as Record<string, unknown>;
@@ -212,7 +212,7 @@ export class StubTradio {
     if (g.exports) g.exports.tRadio = this.bag();
   }
 
-  // ── the exports ──
+  // the exports
 
   private bag(): Record<string, ExportFn> {
     const raw = this.exportTable();
@@ -239,7 +239,7 @@ export class StubTradio {
 
   private exportTable(): Record<string, ExportFn> {
     return {
-      // ── H1: exists today ──
+      // H1: exists today
       getAllChannels: () =>
         this.channels.map((channel, index) => ({
           zoneId: 1,
@@ -279,11 +279,11 @@ export class StubTradio {
       },
       playToneOnChannel: () => true,
 
-      // ── H6 ──
+      // H6
       getAlerts: () => JSON.stringify(this.alerts),
       getToneKeys: () => JSON.stringify(this.tones),
 
-      // ── H6b ──
+      // H6b
       getPatches: () => JSON.stringify(this.patchList),
       createPatch: (label, frequenciesJson) => {
         if (!this.permitted) return JSON.stringify({ ok: false, reason: "not_permitted" });
@@ -317,7 +317,7 @@ export class StubTradio {
         return this.patchList.length < before;
       },
 
-      // ── H2 ──
+      // H2
       registerTransmissionTap: (optsJson) => {
         if (!this.permitted) return "";
         const options = JSON.parse(String(optsJson)) as { frequencies?: number[] };
@@ -327,7 +327,7 @@ export class StubTradio {
       },
       unregisterTransmissionTap: (id) => this.taps.delete(String(id)),
 
-      // ── H3 ──
+      // H3
       openStation: (optsJson) => {
         if (!this.permitted) return "";
         // tRadio: eight stations per resource.
@@ -394,7 +394,7 @@ export class StubTradio {
           humans: this.humans,
         }),
 
-      // ── H4 ──
+      // H4
       answer911: (stationId, callId) => {
         if (!this.permitted) return JSON.stringify({ ok: false, reason: "not_permitted" });
         const station = this.stations.get(String(stationId));
@@ -424,7 +424,7 @@ export class StubTradio {
         return true;
       },
 
-      // ── H7 ──
+      // H7
       cadDetect: () => this.detected,
       cadCapabilities: (provider) => {
         const chosen = String(provider) || Object.keys(this.detected)[0] || "";
@@ -484,7 +484,7 @@ export class StubTradio {
     });
   }
 
-  // ── driving the addon ──
+  // driving the addon
 
   /** The id of the tap the addon registered, or null. */
   tapId(): string | null {

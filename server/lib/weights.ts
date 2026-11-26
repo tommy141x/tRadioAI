@@ -438,7 +438,7 @@ async function run(
     // ensureWeights reports the same failure with its reason; do not double-log.
   }
 
-  // ── Engines before weights ──
+  // Engines before weights
   //
   // The engine binaries are no longer bundled either (117.5 MB of a 146 MB zip,
   // for a feature whose default is off), so they are fetched from the same

@@ -115,11 +115,6 @@ export function answeredCount(): number {
   return answered.size;
 }
 
-/** Every live call, for a sweep that needs to check them all. */
-export function answeredCalls(): AnsweredCall[] {
-  return [...answered.values()];
-}
-
 /**
  * What the call turned out to be about, in the dispatcher's own words.
  *

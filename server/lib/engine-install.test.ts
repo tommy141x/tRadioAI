@@ -36,7 +36,7 @@ function plan(over: Partial<Record<"text" | "speech" | "transcription", boolean>
   } as ProviderPlan;
 }
 
-// ── The real lockfile ───────────────────────────────────────────────────────
+// The real lockfile
 
 describe("the shipped lockfile", () => {
   test("every archive entry parses, and carries what ensureAssets needs", () => {
@@ -77,7 +77,7 @@ describe("the shipped lockfile", () => {
   });
 });
 
-// ── Selection: the whole point of the change ────────────────────────────────
+// Selection: the whole point of the change
 
 describe("archivesFor", () => {
   const all = (): PinnedArchive[] => readArchives(REPO);
@@ -121,7 +121,7 @@ describe("archivesFor", () => {
   });
 });
 
-// ── Parsing refusals ───────────────────────────────────────────────────────
+// Parsing refusals
 
 describe("parseArchive", () => {
   const good = {
@@ -173,7 +173,7 @@ describe("parseArchive", () => {
   });
 });
 
-// ── Install detection ──────────────────────────────────────────────────────
+// Install detection
 
 describe("isInstalled", () => {
   const archive = (): PinnedArchive =>
@@ -219,7 +219,7 @@ describe("isInstalled", () => {
   });
 });
 
-// ── Operator-facing failure text ───────────────────────────────────────────
+// Operator-facing failure text
 
 describe("explainFetchFailure", () => {
   const a = (): PinnedArchive =>

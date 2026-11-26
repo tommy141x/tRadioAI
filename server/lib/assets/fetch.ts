@@ -197,10 +197,12 @@ export async function fetchAsset(
   await new Promise<void>((resolve, reject) => {
     let settled = false;
     let timer: ReturnType<typeof setTimeout>;
+    const onAbort = () => fail(new Error("aborted"));
     const fail = (error: Error) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      signal?.removeEventListener("abort", onAbort);
       res.destroy();
       // `sink.end`, never `sink.destroy`. Destroying discards whatever is still
       // buffered, so a dropped connection would leave a .part shorter than the
@@ -217,7 +219,6 @@ export async function fetchAsset(
       timer = setTimeout(() => fail(new Error("stalled")), stallMs);
     };
     arm();
-    const onAbort = () => fail(new Error("aborted"));
     signal?.addEventListener("abort", onAbort, { once: true });
 
     res.on("data", (chunk: Buffer) => {

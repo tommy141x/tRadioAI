@@ -87,7 +87,7 @@ import { closeStation, forgetStation, stationId, syncStation } from "./station";
 import { callLuaSafely, describeTools, isLiftedExample, resolveTool, runTool } from "./tools";
 import * as tradio from "./tradio-hooks";
 import { describeTurn, finishTurn, recordOutcomes, startTurn, type TurnJournal } from "./turnlog";
-import type { AiCallInfo, AiOutcome, AiTurnContext, AudioClip } from "./types";
+import type { AiCallInfo, AiDecision, AiOutcome, AiTurnContext, AudioClip } from "./types";
 import { registerWeightsCommand, resetWeights, syncWeights, weightsState } from "./weights";
 
 type Call911 = tradio.Call911;
@@ -301,9 +301,9 @@ const CALL_HOLD = "Stay on the line with me.";
  * One, and not as a placeholder. A call is a channel with a turn loop on it, and
  * two live calls means two model decodes racing for the same cores — which on a
  * CPU-only box does not halve the latency of one call, it roughly doubles the
- * latency of both. A second caller waiting in the queue for thirty seconds and
- * then being answered properly is a better call than two answered at once and
- * neither listened to.
+ * latency of both. A second call that arrives meanwhile is not picked up: it goes
+ * out on the air from what the caller typed (`onCallQueued`), which is a better
+ * outcome than two calls answered at once and neither listened to.
  */
 const MAX_ANSWERED_CALLS = 1;
 
@@ -392,7 +392,19 @@ const readiness = createReadiness(async () => {
   await warmSpeech(lines, config.voiceGender, AbortSignal.timeout(60_000));
 });
 
+let weightsWereReady = false;
+
 function syncReadiness(): void {
+  // The warm above does nothing while the model files are not ready, and still counts as
+  // the one warm readiness asks for. So the moment they BECOME ready has to ask again:
+  // otherwise nothing is loaded ahead of the first transmission after `tradioai_download`
+  // finishes, nor after any config push that arrives while a unit is already on the
+  // channel, because the disk check behind `weightsState` is still running when the warm
+  // it gates is requested. Either way the first unit to key up paid for a cold model load.
+  const weightsReady = weightsState().state === "ready";
+  if (weightsReady && !weightsWereReady) readiness.reset();
+  weightsWereReady = weightsReady;
+
   const config = aiConfig();
   const covered = config.enabled ? config.channels.filter((frequency) => !yielding(frequency)) : [];
   readiness.update(
@@ -457,16 +469,45 @@ function identity(serverId: number): { callsign: string; unitId: string } {
   return fresh;
 }
 
+const UNIT_NOTES_TTL_MS = 2000;
+const unitNotes = new Map<number, { at: number; status: string; note: string }>();
+
+/**
+ * A unit's last status and the operator's `Config.unitNote`, asked once per turn.
+ *
+ * One turn builds the roster four times over (for the transcription bias, for the
+ * context, and inside the channel directory for each), so uncached this was four Lua
+ * round trips and four runs of the operator's hook for every unit on the channel, on
+ * every transmission. The hook is documented as running once per unit per turn, and an
+ * operator who took that at its word and put a database read in it was paying for it
+ * eighty times a turn on a twenty-unit channel.
+ */
+function unitNotesFor(serverId: number): { status: string; note: string } {
+  const now = Date.now();
+  const cached = unitNotes.get(serverId);
+  if (cached && now - cached.at < UNIT_NOTES_TTL_MS) return cached;
+  const record = (callLuaSafely<unknown>("getUnitInfo", [serverId], null) ?? {}) as Record<
+    string,
+    unknown
+  >;
+  const fresh = {
+    at: now,
+    status: typeof record.status === "string" ? record.status.slice(0, 48) : "",
+    note: typeof record.note === "string" ? record.note.slice(0, 120) : "",
+  };
+  unitNotes.set(serverId, fresh);
+  return fresh;
+}
+
 /** Callsign, unit id, last status and whatever a CAD wants to add. */
 function unitInfo(serverId: number): UnitInfo {
-  const extra = callLuaSafely<unknown>("getUnitInfo", [serverId], null);
-  const record = (extra ?? {}) as Record<string, unknown>;
+  const notes = unitNotesFor(serverId);
   return {
     // tRadio's player name already is the callsign when its callsign system is on.
     callsign: identity(serverId).callsign,
     unitId: identity(serverId).unitId,
-    status: typeof record.status === "string" ? record.status.slice(0, 48) : "",
-    note: typeof record.note === "string" ? record.note.slice(0, 120) : "",
+    status: notes.status,
+    note: notes.note,
     point: playerPoint(serverId),
   };
 }
@@ -721,7 +762,7 @@ async function respond(
       }, STALL_MS)
     : null;
 
-  const decision = await provider().decide(
+  const deciding = provider().decide(
     system,
     buildTurnPrompt(context, tools),
     tools,
@@ -764,6 +805,21 @@ async function respond(
     },
     onCall ? "call" : "radio",
   );
+  let decision: AiDecision;
+  try {
+    decision = await deciding;
+  } catch (err) {
+    // A decision that FAILED must disarm the hold too. A provider that refuses in a few
+    // hundred milliseconds (a revoked key, a 429) used to leave the timer running: the
+    // turn was logged and abandoned, and a second later the channel heard "King 41,
+    // stand by" from a dispatcher that was not coming back.
+    if (stallTimer) clearTimeout(stallTimer);
+    // And a hold already on the air is still a promise to this unit. The turn is over,
+    // but their next transmission answers us and carries no wake phrase; see the note
+    // on `heldAired` at the tail of this function.
+    if (!onCall && stalling && (await stalling)) expectAnswerFrom(context);
+    throw err;
+  }
   journal.stages.decision = Date.now() - decisionStarted;
   // A decision that finished without ever producing a draft — a provider that
   // will not stream — must not leave the hold armed to fire into the reply.
@@ -825,6 +881,9 @@ async function respond(
   }
 
   recordOutcomes(journal, outcomes);
+  // A tool may have just changed a status the cache above is holding; the next turn can
+  // start inside its lifetime and would show the unit as they were before.
+  if (outcomes.length > 0) unitNotes.clear();
 
   if (reply && echoesInstructions(reply, system)) {
     journal.dropped.push(`reply "${reply}" — copied out of the dispatcher's own instructions`);
@@ -837,7 +896,7 @@ async function respond(
   // awaited here: whether it is worth airing is a question for once the
   // acknowledgement is done.
   //
-  // `statusOutcomeReply` answers without a model at all when a single status
+  // `outcomeReadback` answers without a model at all when a single status
   // change is the whole of the turn, which is the common case and is free.
   // A hang-up that worked is not reported back.
   //
@@ -1069,23 +1128,30 @@ async function respond(
    * expectation is for.
    */
   if (!journal.aired && !heldAired) return;
-  if (context.serverId > 0) {
-    // Having just spoken to them, their next transmission is a reply and needs
-    // no wake phrase — which is the whole "Go ahead" / "…" / traffic exchange.
-    //
-    // Unless the dispatcher called somebody ELSE out, in which case they are the one
-    // a reply is expected from: "King 41 copy, King 15 route, assisting King 41" is a
-    // question to King 15, and their "10-4, I'm en route" carries no callsign and no
-    // wake phrase. Before this, that reply was dropped as not addressed — the
-    // dispatcher could not hear the answer to its own callout.
-    const called = unitNamedIn(
-      `${journal.reply} ${journal.followUp}`,
-      context.roster,
-      context.serverId,
-    );
-    expectReplyFrom(context.frequency, called ?? context.serverId);
-    clearWaiting(context.frequency, context.serverId);
-  }
+  // Having just spoken to them, their next transmission is a reply and needs
+  // no wake phrase — which is the whole "Go ahead" / "…" / traffic exchange.
+  //
+  // Unless the dispatcher called somebody ELSE out, in which case they are the one
+  // a reply is expected from: "King 41 copy, King 15 route, assisting King 41" is a
+  // question to King 15, and their "10-4, I'm en route" carries no callsign and no
+  // wake phrase. Before this, that reply was dropped as not addressed — the
+  // dispatcher could not hear the answer to its own callout.
+  const called = unitNamedIn(
+    `${journal.reply} ${journal.followUp}`,
+    context.roster,
+    context.serverId,
+  );
+  expectAnswerFrom(context, called ?? context.serverId);
+}
+
+/**
+ * The dispatcher has just spoken on this turn, so the next transmission from `from` is a
+ * reply to it. `from` is the unit who keyed up unless somebody else was called out.
+ */
+function expectAnswerFrom(context: AiTurnContext, from = context.serverId): void {
+  if (context.serverId <= 0) return;
+  expectReplyFrom(context.frequency, from);
+  clearWaiting(context.frequency, context.serverId);
 }
 
 /**
@@ -1147,10 +1213,7 @@ async function answerCallUp(
 
   journal.aired = true;
   recordSaid(context.frequency, config.callsign, reply);
-  if (context.serverId > 0) {
-    expectReplyFrom(context.frequency, context.serverId);
-    clearWaiting(context.frequency, context.serverId);
-  }
+  expectAnswerFrom(context);
   return true;
 }
 
@@ -1172,6 +1235,7 @@ async function runTurn(transmission: Transmission): Promise<void> {
   const clock = turnClock(config.turnTimeoutMs);
   const controller = clock.controller;
   const onCall = isAnsweredCall(frequency);
+  if (onCall) callTurns.set(frequency, controller);
   const journal = startTurn(
     onCall ? "call_intake" : "transmission",
     frequency,
@@ -1228,6 +1292,12 @@ async function runTurn(transmission: Transmission): Promise<void> {
     // accident — the alternative is hanging up on somebody mid-sentence to be
     // tidy.
     const answered = answeredOn(frequency);
+    // The line went down while this was being transcribed. Without this the clip fell
+    // through to the radio path below, as traffic on a channel that is in no config.
+    if (onCall && !answered) {
+      journal.skipped = CALL_ENDED;
+      return;
+    }
     if (answered) {
       const callContextNow = callIntakeContext(answered, transcript);
       journal.heard = transcript;
@@ -1312,16 +1382,47 @@ async function runTurn(transmission: Transmission): Promise<void> {
     await respond(context, controller.signal, journal, clock.allowAirtime);
   } catch (err) {
     const reason = controller.signal.aborted
-      ? `timed out after ${config.turnTimeoutMs}ms`
+      ? abortReason(controller.signal)
       : (err as Error).message;
-    journal.error = reason;
-    aiLog.warn(`turn: abandoned on ${frequency} — ${reason}`);
+    if (reason === CALL_ENDED) {
+      // A caller hanging up mid-turn is how calls end, not a fault worth a warning.
+      journal.skipped = reason;
+    } else {
+      journal.error = reason;
+      aiLog.warn(`turn: abandoned on ${frequency} — ${reason}`);
+    }
   } finally {
     clock.clear();
+    if (onCall) endCallTurn(frequency, controller);
     // Every path, including the ones that ended before deciding anything: a turn
     // that said nothing is the case most in need of an explanation.
     finishTurn(journal);
   }
+}
+
+/** What a turn's abort signal carries when the 911 call it was on has ended. */
+const CALL_ENDED = "the call ended";
+
+/**
+ * The turn in flight on each live call's line.
+ *
+ * So that a call which ends takes its turn with it. `releaseCall` drops the call's
+ * history, but a turn already running held its own context and carried on: it decoded
+ * for a line nobody was on, aired into a frequency that no longer exists, and wrote the
+ * exchange back into the history that had just been dropped, which for a frequency that
+ * is never reused meant a member of the public's words kept for the life of the server.
+ */
+const callTurns = new Map<number, AbortController>();
+
+/** A call turn is over: forget its controller, and its history if the call went with it. */
+function endCallTurn(frequency: number, controller: AbortController): void {
+  if (callTurns.get(frequency) === controller) callTurns.delete(frequency);
+  // Whatever the turn recorded between the call ending and the abort reaching it.
+  if (!isAnsweredCall(frequency)) forgetChannel(frequency);
+}
+
+function abortReason(signal: AbortSignal): string {
+  return signal.reason instanceof Error ? signal.reason.message : "aborted";
 }
 
 /**
@@ -1350,12 +1451,14 @@ function turnClock(budgetMs: number): {
   clear: () => void;
 } {
   const controller = new AbortController();
-  let deadline = setTimeout(() => controller.abort(), budgetMs);
+  // A reason, so whoever catches the abort can tell the deadline from a call that ended.
+  const expire = () => controller.abort(new Error(`timed out after ${budgetMs}ms`));
+  let deadline = setTimeout(expire, budgetMs);
   return {
     controller,
     allowAirtime(airedMs) {
       clearTimeout(deadline);
-      deadline = setTimeout(() => controller.abort(), budgetMs + airedMs);
+      deadline = setTimeout(expire, budgetMs + airedMs);
     },
     clear() {
       clearTimeout(deadline);
@@ -1380,15 +1483,33 @@ function beginTurn(transmission: Transmission): void {
   // documented.
   noteTurn(transmission.serverId);
   busy.add(frequency);
-  runTurn(transmission).finally(() => {
-    busy.delete(frequency);
-    drain(frequency);
-  });
+  runTurn(transmission).finally(() => turnEnded(frequency));
+}
+
+/**
+ * A channel's turn is over: what was waiting on it goes next.
+ *
+ * A parked call before a queued transmission. The call is news for the whole channel
+ * and has already waited out a turn it had no part in; a queued unit is one talker, and
+ * hears the call go out like everybody else.
+ */
+function turnEnded(frequency: number): void {
+  busy.delete(frequency);
+  announcePending();
+  // A parked call may have just taken this channel, and its own end drains the queue.
+  if (!busy.has(frequency)) drain(frequency);
 }
 
 function drain(frequency: number): void {
   const queued = queues.get(frequency);
   if (!queued || queued.length === 0) {
+    queues.delete(frequency);
+    return;
+  }
+  // A human signed on while these waited. `onTransmission` hears nothing on a channel a
+  // human has; what queued before they arrived is theirs to answer too, and running it
+  // would spend a transcription to reach the same answer in `runTurn`.
+  if (yielding(frequency)) {
     queues.delete(frequency);
     return;
   }
@@ -1494,15 +1615,25 @@ function onTransmission(transmission: Transmission): void {
  * fire call lands on a server's fire channel without tRadio knowing that server
  * has one, or what it is called.
  */
-function channelForCall(service: string, origin: Point | null): number | null {
+function channelForCall(
+  service: string,
+  origin: Point | null,
+): { frequency: number | null; occupied: boolean } {
   const wanted = service.trim().toLowerCase();
   let chosen: number | null = null;
   let best = 0;
+  // A channel that would have qualified but is mid-turn. Only matters when nothing
+  // else did: it is what tells "nobody to tell" from "wait your turn".
+  let occupied = false;
 
   for (const candidate of aiConfig().channels) {
-    if (busy.has(candidate) || yielding(candidate)) continue;
+    if (yielding(candidate)) continue;
     const count = rosterFor(candidate, origin).length;
     if (count === 0) continue;
+    if (busy.has(candidate)) {
+      occupied = true;
+      continue;
+    }
 
     const named = wanted ? channelName(candidate).toLowerCase().includes(wanted) : false;
     const score = count + (named ? 100 : 0);
@@ -1511,7 +1642,50 @@ function channelForCall(service: string, origin: Point | null): number | null {
       chosen = candidate;
     }
   }
-  return chosen;
+  return { frequency: chosen, occupied };
+}
+
+type CallCoords = { x: number; y: number; z: number } | null;
+
+/**
+ * Calls that could not go out because every channel with units on it was mid-turn.
+ *
+ * They used to be dropped. `channelForCall` skips a busy channel, so on a server with
+ * one dispatch channel a 911 call that arrived while the dispatcher was answering a unit
+ * found no channel at all and was discarded with one `debug` line. A turn runs for
+ * several seconds and a working channel is mid-turn much of the time, so that was not a
+ * corner: it was every call that landed during an exchange.
+ *
+ * Few and short-lived, like the transmission queue and for the same reason. The call is
+ * still in tRadio's own queue for a human; what expires here is only the dispatcher's
+ * intent to read it out, and a call first voiced minutes late reads as a new one.
+ */
+const MAX_PENDING_CALLS = 4;
+const PENDING_CALL_TTL_MS = 120_000;
+const pendingCalls: { call: AiCallInfo; coords: CallCoords; since: number }[] = [];
+
+function parkCall(call: AiCallInfo, coords: CallCoords, since: number): void {
+  if (pendingCalls.length >= MAX_PENDING_CALLS) {
+    const dropped = pendingCalls.shift();
+    if (dropped) {
+      aiLog.warn(`call: ${dropped.call.id} was never put out — newer calls are waiting behind it`);
+    }
+  }
+  pendingCalls.push({ call, coords, since });
+  aiLog.debug(`call: ${call.id} held until a channel is free`);
+}
+
+/** Try every parked call again. One that still has nowhere to go parks itself again. */
+function announcePending(): void {
+  if (pendingCalls.length === 0) return;
+  const now = Date.now();
+  for (const parked of pendingCalls.splice(0)) {
+    if (now - parked.since > PENDING_CALL_TTL_MS) {
+      aiLog.warn(`call: ${parked.call.id} was never put out — no channel came free in time`);
+      continue;
+    }
+    announceCall(parked.call, parked.coords, parked.since);
+  }
 }
 
 /**
@@ -1520,14 +1694,15 @@ function channelForCall(service: string, origin: Point | null): number | null {
  * Reached from tRadio's 911 queue and from anything else that hands the
  * dispatcher a call — see `tradioai:call`.
  */
-function announceCall(call: AiCallInfo, coords: { x: number; y: number; z: number } | null): void {
+function announceCall(call: AiCallInfo, coords: CallCoords, since = Date.now()): void {
   const config = aiConfig();
   if (!config.enabled || !config.auto911) return;
 
   const origin = coords ? { x: coords.x, y: coords.y } : null;
-  const frequency = channelForCall(call.service, origin);
+  const { frequency, occupied } = channelForCall(call.service, origin);
   if (frequency === null) {
-    aiLog.debug(`call: no channel with units to announce ${call.id} on`);
+    if (occupied) parkCall(call, coords, since);
+    else aiLog.debug(`call: no channel with units to announce ${call.id} on`);
     return;
   }
 
@@ -1549,8 +1724,7 @@ function announceCall(call: AiCallInfo, coords: { x: number; y: number; z: numbe
     .finally(() => {
       clock.clear();
       finishTurn(journal);
-      busy.delete(frequency);
-      drain(frequency);
+      turnEnded(frequency);
     });
 }
 
@@ -1632,45 +1806,36 @@ async function pickUp(station: string, call: Call911): Promise<{ ok: boolean; re
  * known before they say anything. Everything after it goes through `respond`
  * like a transmission does.
  */
-async function answerCall(call: Call911): Promise<void> {
-  if (!shouldAnswerCalls()) return;
+async function answerCall(call: Call911): Promise<boolean> {
+  if (!shouldAnswerCalls()) return false;
   if (answeredCount() >= MAX_ANSWERED_CALLS) {
-    aiLog.debug(`call: ${call.id} left in the queue — already on a call`);
-    return;
+    aiLog.debug(`call: ${call.id} not picked up — already on a call`);
+    return false;
   }
 
   const station = stationId();
   if (!station) {
-    aiLog.debug(`call: ${call.id} left in the queue — no station is open to answer from`);
-    return;
+    aiLog.debug(`call: ${call.id} not picked up — no station is open to answer from`);
+    return false;
   }
-
-  const info: AiCallInfo = {
-    id: call.id,
-    source: "911",
-    caller: call.callerName,
-    message: call.message,
-    location: locationOf(call.coords),
-    priority: "",
-    service: "",
-  };
 
   // Registered before the answer, not after: tRadio starts reporting the caller's
   // transmissions the moment it accepts, and the registry is how a transmission on a
   // frequency that exists nowhere in the config is recognised as a call.
-  const entry = noteAnswered(call, info);
+  const entry = noteAnswered(call, callInfo(call));
   const refused = await pickUp(station, call);
   if (!refused.ok) {
-    // The caller dropped, or a human got there first. Unwound so nothing is left
-    // holding a frequency for a call that is not ours.
+    // Unwound so nothing is left holding a frequency for a call that is not ours.
     forgetCall(call.id);
     aiLog.debug(`call: ${call.id} not answered — ${refused.reason}`);
-    return;
+    // Gone, or somebody else has it: there is nothing left to put out either.
+    return refused.reason === "unknown_call" || refused.reason === "already_handled";
   }
   aiLog.info(`[audit] ai:911-answer id=${call.id} caller=${call.callerServerId}`);
 
   const config = aiConfig();
   const clock = turnClock(config.turnTimeoutMs + CALL_JOIN_WAIT_MS);
+  callTurns.set(call.frequency, clock.controller);
   const journal = startTurn("call_intake", call.frequency, call.callerServerId);
   journal.addressed = true;
   journal.addressedBy = "911 call answered";
@@ -1687,7 +1852,7 @@ async function answerCall(call: Call911): Promise<void> {
       // want different fixes. The call itself is left alone: `calls911`'s answer
       // watchdog owns this case and will end it.
       journal.skipped = "the caller never joined the line";
-      return;
+      return true;
     }
     const speechStarted = Date.now();
     const aired = await airReply(
@@ -1713,10 +1878,24 @@ async function answerCall(call: Call911): Promise<void> {
     aiLog.warn(`call: ${call.id} greeting failed — ${(err as Error).message}`);
   } finally {
     clock.clear();
+    endCallTurn(call.frequency, clock.controller);
     finishTurn(journal);
-    busy.delete(call.frequency);
-    drain(call.frequency);
+    turnEnded(call.frequency);
   }
+  return true;
+}
+
+/** A queued 911 call as the dispatcher describes it, to a caller or to the channel. */
+function callInfo(call: Call911): AiCallInfo {
+  return {
+    id: call.id,
+    source: "911",
+    caller: call.callerName,
+    message: call.message,
+    location: locationOf(call.coords),
+    priority: "",
+    service: "",
+  };
 }
 
 /**
@@ -1738,6 +1917,8 @@ function releaseCall(callerServerId: number, reason: string): void {
   const entry = forgetCall(answered.callId);
   if (!entry) return;
 
+  // Whatever turn is still running on the line stops here; see `callTurns`.
+  callTurns.get(entry.frequency)?.abort(new Error(CALL_ENDED));
   // The history goes with the call: a call frequency is never reused, so anything
   // left behind is a leak with a member of the public's words in it.
   forgetChannel(entry.frequency);
@@ -1921,8 +2102,28 @@ function syncSeat(): void {
   });
 }
 
+/**
+ * Drop cached positions, identities and notes that have expired.
+ *
+ * All three maps are keyed by server id and a player gets a new one on every connection,
+ * so an entry was never overwritten once its player left: without this they hold every
+ * player the server has seen since the resource started.
+ */
+function sweepUnitCaches(now: number): void {
+  for (const [serverId, entry] of positions) {
+    if (now - entry.at >= POSITION_TTL_MS) positions.delete(serverId);
+  }
+  for (const [serverId, entry] of identities) {
+    if (now - entry.at >= IDENTITY_TTL_MS) identities.delete(serverId);
+  }
+  for (const [serverId, entry] of unitNotes) {
+    if (now - entry.at >= UNIT_NOTES_TTL_MS) unitNotes.delete(serverId);
+  }
+}
+
 function tick(): void {
   const now = Date.now();
+  sweepUnitCaches(now);
   if (!tradioReady(now)) {
     // A tRadio that went away takes its tap and station ids with it.
     if (tapFrequencies) {
@@ -1948,23 +2149,21 @@ function tick(): void {
  */
 function onCallQueued(call: Call911): void {
   if (shouldAnswerCalls() && answeredCount() < MAX_ANSWERED_CALLS) {
-    void answerCall(call).catch((err: unknown) => {
-      aiLog.warn(`call: ${call.id} could not be answered — ${(err as Error).message}`);
-    });
+    // A call that could not be picked up is put out instead. It used to be left in
+    // tRadio's queue and nowhere else: `answer911` on meant a caller whose client never
+    // connected, or a station tRadio would not open a line on, produced no radio
+    // traffic at all, where the same call with `answer911` off is announced at once.
+    void answerCall(call)
+      .catch((err: unknown) => {
+        aiLog.warn(`call: ${call.id} could not be answered — ${(err as Error).message}`);
+        return false;
+      })
+      .then((handled) => {
+        if (!handled) announceCall(callInfo(call), call.coords);
+      });
     return;
   }
-  announceCall(
-    {
-      id: call.id,
-      source: "911",
-      caller: call.callerName,
-      message: call.message,
-      location: locationOf(call.coords),
-      priority: "",
-      service: "",
-    },
-    call.coords,
-  );
+  announceCall(callInfo(call), call.coords);
 }
 
 export function installDispatcher(): void {
@@ -2021,8 +2220,13 @@ export function installDispatcher(): void {
       tradio.resetHooks();
       busy.clear();
       queues.clear();
+      pendingCalls.length = 0;
+      for (const controller of callTurns.values()) controller.abort(new Error(CALL_ENDED));
+      callTurns.clear();
+      weightsWereReady = false;
       positions.clear();
       identities.clear();
+      unitNotes.clear();
       resetConversations();
       resetCalls();
       resetSpeaker();

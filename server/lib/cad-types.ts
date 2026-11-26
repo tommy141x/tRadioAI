@@ -59,21 +59,6 @@ export type CadCapability =
   | "writeStatus"
   | "roster";
 
-export const CAD_CAPABILITIES: readonly CadCapability[] = [
-  "plate",
-  "bolo",
-  "person",
-  "warrants",
-  "createCall",
-  "attachUnit",
-  "detachUnit",
-  "closeCall",
-  "addNote",
-  "readStatus",
-  "writeStatus",
-  "roster",
-];
-
 /**
  * How a CAD answered, once its own status vocabulary has been read for meaning.
  *
@@ -154,21 +139,6 @@ export interface CadCall {
   ref: string;
   /** What `closeCall` wants, when the CAD distinguishes the two. Imperial does. */
   closeRef?: string;
-}
-
-/**
- * One unit as the CAD sees it.
- *
- * Every field optional because the CADs disagree on all of them, and a roster row
- * that invents a callsign is worse than one that admits it has none.
- */
-export interface CadUnit {
-  serverId: number;
-  callsign?: string;
-  /** The CAD's own status text, already mapped out of any numeric enum. */
-  status?: string;
-  /** "LEO", "FIRE", a department name — whatever the CAD actually reports. */
-  service?: string;
 }
 
 export type CadProviderId = "imperial" | "sonoran" | "wasabi" | "tkmdt" | "psmdt" | "lacore";

@@ -125,6 +125,18 @@ const launching = new Map<ServedCapability, Running>();
  */
 let generation = 0;
 const failed = new Map<Capability, string>();
+
+/**
+ * A capability whose runtime or model is not on disk, and what was missing.
+ *
+ * Apart from {@link failed} because it is not remembered as a verdict. A launch that
+ * failed stays failed until the operator changes something; a missing file is asked
+ * about again on every start, because `tradioai_download` installs it while the
+ * resource is running. Held in `failed`, one transmission heard before the download
+ * left the capability written off until the next restart, with a console line still
+ * naming a file that was by then on disk.
+ */
+const absent = new Map<Capability, string>();
 const voices = new Map<string, Voice | null>();
 let artifacts: Record<string, string> | null = null;
 let paths: LocalPaths | null = null;
@@ -160,16 +172,25 @@ function engineEnv(dir: string): Record<string, string> {
 
 export function configureLocal(next: Partial<LocalPaths>): void {
   const root = next.root?.trim() ? next.root.trim() : resourceRoot();
-  const changed = !paths || paths.root !== root;
+  const previous = paths;
   paths = {
     root,
     textModel: next.textModel?.trim() || "",
     transcribeModel: next.transcribeModel?.trim() || "",
     voicesDir: next.voicesDir?.trim() || "",
   };
-  // A root change invalidates anything already running against the old one.
+  // A change of root or of either model invalidates what is running against the old
+  // one. The models count as well as the root: an engine holds the file it was started
+  // with, so `tradioai_reload` after pointing `textModel` somewhere else used to report
+  // the new config applied while the old model went on answering.
+  const changed =
+    !previous ||
+    previous.root !== paths.root ||
+    previous.textModel !== paths.textModel ||
+    previous.transcribeModel !== paths.transcribeModel;
   if (changed) stopLocalEngines();
   failed.clear();
+  absent.clear();
   voices.clear();
   artifacts = null;
 }
@@ -462,16 +483,18 @@ async function startEngine(capability: ServedCapability): Promise<LocalEndpoint 
   const adopted = await adoptShared(capability);
   if (adopted) return adopted;
 
-  if (failed.get(capability)) return null;
-
   const launch = launchFor(capability);
 
+  // Before the record of an earlier failure, and never entered into it: see `absent`.
   if (!existsSync(launch.binary)) {
-    return markFailed(capability, `no local runtime at ${launch.binary}`);
+    return markAbsent(capability, `no local runtime at ${launch.binary}`);
   }
   if (!launch.model) {
-    return markFailed(capability, `no local ${capability} model installed`);
+    return markAbsent(capability, `no local ${capability} model installed`);
   }
+  absent.delete(capability);
+
+  if (failed.get(capability)) return null;
 
   ensureExecutable(launch.binary);
 
@@ -1003,9 +1026,18 @@ function markFailed(capability: Capability, reason: string): null {
   return null;
 }
 
+/** Said once per distinct reason, like `markFailed`, and asked again on the next start. */
+function markAbsent(capability: Capability, reason: string): null {
+  if (absent.get(capability) !== reason) {
+    absent.set(capability, reason);
+    aiLog.warn(`local: ${reason}`);
+  }
+  return null;
+}
+
 /** Why a local capability is unavailable, for the operator-facing diagnostic. */
 export function localFailure(capability: Capability): string {
-  return failed.get(capability) ?? "";
+  return absent.get(capability) ?? failed.get(capability) ?? "";
 }
 
 /** Resource stop: every child dies with the resource that started it. */

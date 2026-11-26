@@ -1,7 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
   describePlan,
-  isFullyLocal,
   keyConvar,
   parseCapability,
   resolveCapability,
@@ -11,14 +10,9 @@ import {
 describe("resolveProviders", () => {
   it("is fully local when nothing is configured", () => {
     const plan = resolveProviders();
-    expect(isFullyLocal(plan)).toBe(true);
     expect(plan.text.provider).toBe("local");
     expect(plan.speech.provider).toBe("local");
     expect(plan.transcription.provider).toBe("local");
-  });
-
-  it("is fully local for an empty providers table", () => {
-    expect(isFullyLocal(resolveProviders({}))).toBe(true);
   });
 
   it("resolves each capability independently", () => {
@@ -29,7 +23,6 @@ describe("resolveProviders", () => {
     expect(plan.text.baseUrl).toBe("https://api.groq.com/openai/v1");
     expect(plan.speech.hosted).toBe(false);
     expect(plan.transcription.hosted).toBe(false);
-    expect(isFullyLocal(plan)).toBe(false);
   });
 });
 

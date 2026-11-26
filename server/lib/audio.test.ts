@@ -1,31 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  base64ToBytes,
-  buildWav,
-  bytesToBase64,
-  normalisePeak,
-  pcmDurationMs,
-  resamplePcm,
-  trimTrailingSilence,
-} from "./audio";
-
-describe("base64", () => {
-  test("round-trips", () => {
-    const bytes = new Uint8Array([0, 1, 2, 250, 255]);
-    expect(Array.from(base64ToBytes(bytesToBase64(bytes))!)).toEqual(Array.from(bytes));
-  });
-
-  test("is null for input that decodes to nothing", () => {
-    expect(base64ToBytes("")).toBeNull();
-    expect(base64ToBytes("!!!!")).toBeNull();
-  });
-
-  test("respects a view's offset rather than its whole backing buffer", () => {
-    const backing = new Uint8Array([9, 9, 1, 2]);
-    const view = backing.subarray(2);
-    expect(Array.from(base64ToBytes(bytesToBase64(view))!)).toEqual([1, 2]);
-  });
-});
+import { buildWav, normalisePeak, pcmDurationMs, resamplePcm, trimTrailingSilence } from "./audio";
 
 describe("resamplePcm", () => {
   test("returns the input untouched when the rates match", () => {
